@@ -5,16 +5,19 @@ REPORT_TEMPLATE = """
 ## 1. 미국 시장 동향
 {us_market_summary}
 
-## 2. 한국 시장 동향
+## 2. 미국 국채 수익률
+{us_treasury_summary}
+
+## 3. 한국 시장 동향
 {kr_market_summary}
 
-## 3. 주요 환율
+## 4. 주요 환율
 {forex_summary}
 
-## 4. 주요 뉴스
+## 5. 주요 뉴스
 {news_summary}
 
-## 5. 다가오는 경제 지표
+## 6. 다가오는 경제 지표
 {economic_calendar}
 """
 
@@ -26,6 +29,15 @@ MARKET_SECTION_TEMPLATE = """
 - 52주 최고가 대비: {year_high_ratio:.1f}%
 
 ![{market_name} Price Movement]({image_path})
+"""
+
+# 국채 수익률 섹션 템플릿
+TREASURY_SECTION_TEMPLATE = """
+### {treasury_name}
+- 수익률: {yield_rate:.3f}%
+- 전일대비: {change:+.3f}%p
+- 52주 최고: {year_high:.3f}%
+- 52주 최저: {year_low:.3f}%
 """
 
 # 뉴스 섹션 템플릿
