@@ -33,6 +33,24 @@ CURRENCIES = ["USD/KRW", "EUR/KRW", "JPY/KRW", "CNY/KRW"]
 
 # API 키 설정
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
+FREDAPI_KEY = os.getenv("FREDAPI_KEY", "")
+
+# 주요 경제지표 FRED 시리즈 ID
+ECONOMIC_INDICATORS = {
+    "GDP": "GDP",  # 실질 GDP
+    "UNRATE": "UNRATE",  # 실업률
+    "CPIAUCSL": "CPIAUCSL",  # 소비자물가지수
+    "FEDFUNDS": "FEDFUNDS",  # 연방기금금리
+    "INDPRO": "INDPRO",  # 산업생산지수
+    "PAYEMS": "PAYEMS",  # 비농업부문 고용
+    "PCE": "PCE",  # 개인소비지출
+    "HOUST": "HOUST",  # 주택착공건수
+    "BOGMBASE": "BOGMBASE",  # Monetary Base
+    "RETAILSMNSA": "RETAILSMNSA",  # 소매판매
+}
+
+# 경제지표 조회 기간 설정 (일)
+CALENDAR_LOOKBACK_DAYS = 30
 
 
 def get_daily_image_path():

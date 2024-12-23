@@ -6,6 +6,7 @@ cycler==0.12.1
 DateTime==5.5
 Deprecated==1.2.15
 fonttools==4.55.3
+fredapi==0.5.2
 frozendict==2.4.6
 html5lib==1.1
 idna==3.10
