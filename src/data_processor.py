@@ -1,7 +1,7 @@
 from typing import Dict, List, Any
 from datetime import datetime, timedelta, timezone
 import pandas as pd
-from utils.calendar import EconomicEvent
+from utils.calendar import EconomicEvent, EconomicCalendar
 
 
 class DataProcessor:
@@ -537,7 +537,6 @@ class DataProcessor:
             }.items():
                 if key in name or key in desc:
                     priority = max(priority, value)
-
             return priority
 
         # 중요 지표 필터링 및 정렬
@@ -554,8 +553,11 @@ class DataProcessor:
                 current_date = event.date
                 summary.append(f"\n[{current_date}]")
 
-            # 지표 기본 정보
-            info = f"- {event.indicator}"
+            # 한글 지표명 사용
+            indicator_name = EconomicCalendar.INDICATOR_NAMES.get(
+                event.indicator, event.indicator
+            )
+            info = f"- {indicator_name}"
             if event.description:
                 info += f" ({event.description})"
             summary.append(info)

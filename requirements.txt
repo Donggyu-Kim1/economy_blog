@@ -10,6 +10,7 @@ fredapi==0.5.2
 frozendict==2.4.6
 html5lib==1.1
 idna==3.10
+kaleido==0.2.1
 kiwisolver==1.4.7
 lxml==5.3.0
 matplotlib==3.10.0
@@ -21,6 +22,7 @@ pandas==2.2.3
 peewee==3.17.8
 pillow==11.0.0
 platformdirs==4.3.6
+plotly==5.24.1
 pykrx==1.0.48
 pyparsing==3.2.0
 python-dateutil==2.9.0.post0
@@ -30,6 +32,7 @@ requests==2.32.3
 setuptools==75.6.0
 six==1.17.0
 soupsieve==2.6
+tenacity==9.0.0
 tzdata==2024.2
 urllib3==2.3.0
 webencodings==0.5.1
