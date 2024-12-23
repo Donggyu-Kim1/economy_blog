@@ -2,6 +2,7 @@ from typing import Dict, List, Any
 from datetime import datetime, timedelta, timezone
 import pandas as pd
 from utils.calendar import EconomicEvent, EconomicCalendar
+from config.templates import NEWS_TEMPLATE
 
 
 class DataProcessor:
@@ -384,97 +385,14 @@ class DataProcessor:
         뉴스 데이터를 처리하여 주요 뉴스 요약을 생성
 
         Args:
-            news_data: 뉴스 데이터 딕셔너리
-            {
-                'kr_economic': List[{
-                    'title': str,
-                    'title_ko': str,
-                    'summary': str,
-                    'summary_ko': str,
-                    'published_at': str,
-                    'publisher': str
-                }],
-                'global_economic': [...],
-                'global_business': [...]
-            }
-
+            news_data: utils/news.py에서 반환된 뉴스 데이터
         Returns:
             str: 뉴스 요약 문자열
         """
         if not news_data or all(not items for items in news_data.values()):
             return "뉴스 데이터를 가져올 수 없습니다."
 
-        def get_news_priority(news: Dict[str, Any]) -> int:
-            """뉴스의 중요도를 계산"""
-            priority = 0
-            title = (news.get("title_ko") or news.get("title", "")).lower()
-            summary = (news.get("summary_ko") or news.get("summary", "")).lower()
-
-            # 중요 키워드에 따른 우선순위 부여
-            priority_keywords = {
-                3: [
-                    "금리",
-                    "기준금리",
-                    "fed",
-                    "연준",
-                    "실업률",
-                    "gdp",
-                    "인플레이션",
-                    "중앙은행",
-                    "파월",
-                    "옐런",
-                ],
-                2: ["무역수지", "수출", "수입", "물가", "생산", "재정", "증시", "채권"],
-                1: ["실적", "계약", "투자", "매출", "영업이익"],
-            }
-
-            for weight, keywords in priority_keywords.items():
-                if any(keyword in title for keyword in keywords):
-                    priority += weight * 2  # 제목의 키워드는 가중치 2배
-                if any(keyword in summary for keyword in keywords):
-                    priority += weight
-
-            # 주요 언론사 가중치
-            major_publishers = {
-                "로이터",
-                "블룸버그",
-                "월스트리트",
-                "파이낸셜타임스",
-                "한국경제",
-                "매일경제",
-                "연합뉴스",
-            }
-            if any(pub in (news.get("publisher", "")) for pub in major_publishers):
-                priority += 2
-
-            return priority
-
-        def format_news(news: Dict[str, Any], category: str) -> str:
-            """개별 뉴스 포맷팅"""
-            # 제목 선택 (한글 우선)
-            title = news.get("title_ko") or news.get("title", "N/A")
-
-            # 요약 선택 (한글 우선)
-            summary = news.get("summary_ko") or news.get("summary", "N/A")
-
-            # 출처와 시간
-            publisher = news.get("publisher", "N/A")
-            published_at = news.get("published_at", "N/A")
-            if isinstance(published_at, str):
-                try:
-                    # ISO 형식의 시간을 한국 시간으로 변환
-                    dt = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
-                    published_at = dt.astimezone(timezone(timedelta(hours=9))).strftime(
-                        "%Y-%m-%d %H:%M"
-                    )
-                except Exception:
-                    pass
-
-            return f"[{publisher}] {title}\n{summary}\n(보도시각: {published_at})\n"
-
-        # 카테고리별 처리
-        summary = "주요 뉴스 요약\n\n"
-
+        summary = []
         categories = {
             "kr_economic": "국내 경제",
             "global_economic": "글로벌 경제",
@@ -486,19 +404,19 @@ class DataProcessor:
             if not news_list:
                 continue
 
-            # 뉴스 우선순위 계산 및 정렬
-            prioritized_news = [(news, get_news_priority(news)) for news in news_list]
-            prioritized_news.sort(key=lambda x: x[1], reverse=True)
+            summary.append(f"\n[{category_name}]")
+            for news in news_list:
+                # NEWS_TEMPLATE 형식 사용
+                summary.append(
+                    NEWS_TEMPLATE.format(
+                        title=news.get("title_ko") or news.get("title", "N/A"),
+                        source=news.get("publisher", "N/A"),
+                        published_at=news.get("published_at", "N/A"),
+                        summary=news.get("summary_ko") or news.get("summary", "N/A"),
+                    )
+                )
 
-            # 상위 3개 뉴스만 선택
-            top_news = prioritized_news[:3]
-
-            if top_news:
-                summary += f"\n[{category_name}]\n"
-                for news, _ in top_news:
-                    summary += format_news(news, data_key) + "\n"
-
-        return summary.strip()
+        return "\n".join(summary) if summary else "뉴스 데이터를 가져올 수 없습니다."
 
     def process_economic_calendar(self, calendar_data: List[EconomicEvent]) -> str:
         """

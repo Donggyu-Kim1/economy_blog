@@ -1,9 +1,8 @@
-import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 import sys
+import os
 
-# 프로젝트 루트 디렉토리를 Python 경로에 추가
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
@@ -16,6 +15,7 @@ from utils.us_treasury import get_all_treasury_data
 from utils.forex import get_all_forex_data
 from utils.news import get_all_news
 from utils.calendar import EconomicCalendar
+from utils.chart_generator import generate_all_charts
 from config.settings import DATE_FORMAT
 
 
@@ -23,10 +23,6 @@ class ReportGenerator:
     """시장 리포트 생성을 총괄하는 클래스"""
 
     def __init__(self, date: Optional[str] = None):
-        """
-        Args:
-            date: 리포트 생성 날짜 (기본값: 오늘)
-        """
         self.date = date or datetime.now(timezone(timedelta(hours=9))).strftime(
             DATE_FORMAT
         )
@@ -76,7 +72,6 @@ class ReportGenerator:
         processed = {}
 
         try:
-            # 각 섹션별 데이터 처리
             processed["us_market_summary"] = self.processor.process_us_market_data(
                 data["us_market"]
             )
@@ -118,12 +113,18 @@ class ReportGenerator:
             data = self.collect_data()
             logger.info("데이터 수집 완료")
 
+            # 차트 생성
+            if generate_all_charts(self.date):
+                logger.info("차트 생성 완료")
+            else:
+                logger.warning("일부 차트 생성 실패")
+
             # 데이터 처리
             processed_data = self.process_data(data)
             logger.info("데이터 처리 완료")
 
             # 리포트 생성
-            report_path = self.builder.build_report(
+            report_content = self.builder.build_report(
                 us_market_data=data["us_market"],
                 us_market_summary=processed_data["us_market_summary"],
                 us_treasury_data=data["us_treasury"],
@@ -137,7 +138,7 @@ class ReportGenerator:
             )
 
             # 리포트 저장
-            saved_path = self.builder.save_report(report_path)
+            saved_path = self.builder.save_report(report_content)
             logger.log_report_generation(True, saved_path)
 
             return saved_path
@@ -149,21 +150,12 @@ class ReportGenerator:
 
 
 def generate_daily_report(date: Optional[str] = None) -> str:
-    """
-    일일 시장 리포트 생성 헬퍼 함수
-
-    Args:
-        date: 리포트 생성 날짜 (기본값: 오늘)
-
-    Returns:
-        str: 생성된 리포트 파일 경로
-    """
+    """일일 시장 리포트 생성 헬퍼 함수"""
     generator = ReportGenerator(date)
     return generator.generate_report()
 
 
 if __name__ == "__main__":
-    # 리포트 생성 테스트
     print("리포트 생성 테스트 시작...")
     try:
         report_path = generate_daily_report()

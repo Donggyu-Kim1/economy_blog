@@ -1,9 +1,20 @@
 import os
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import yfinance as yf
 from typing import Optional
 import sys
+import pandas as pd
+import mplfinance as mpf
+import matplotlib.font_manager as fm
+
+# 한글 폰트 설정
+font_path = "C:/Windows/Fonts/malgun.ttf"  # 맑은 고딕 폰트 경로
+font_name = fm.FontProperties(fname=font_path).get_name()
+plt.rcParams["font.family"] = font_name
+
+# mplfinance 스타일에 폰트 적용
+s = mpf.make_mpf_style(base_mpf_style="yahoo", rc={"font.family": font_name})
 
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,6 +28,14 @@ from config.settings import (
     DATE_FORMAT,
 )
 
+MARKET_NAMES_KR = {
+    "S&P 500": "S&P 500 지수",
+    "NASDAQ": "나스닥 지수",
+    "DOW": "다우존스 지수",
+    "KOSPI": "코스피 지수",
+    "KOSDAQ": "코스닥 지수",
+}
+
 
 def generate_price_chart(
     ticker: str,
@@ -24,20 +43,7 @@ def generate_price_chart(
     date: Optional[str] = None,
     lookback_days: int = LOOKBACK_DAYS,
 ) -> Optional[str]:
-    """
-    주가 차트를 생성하고 저장합니다.
-
-    Args:
-        ticker (str): yfinance 티커 심볼
-        market_name (str): 시장 이름
-        date (str, optional): 차트 생성 날짜
-        lookback_days (int): 과거 데이터 조회 기간
-
-    Returns:
-        str: 저장된 이미지 파일 경로 또는 None (실패 시)
-    """
     try:
-        # 날짜 설정
         date = date or datetime.now().strftime(DATE_FORMAT)
         end_date = datetime.strptime(date, DATE_FORMAT)
         start_date = end_date - timedelta(days=lookback_days)
@@ -53,43 +59,35 @@ def generate_price_chart(
         hist = yf_ticker.history(start=start_date, end=end_date)
 
         if hist.empty:
-            print(f"No data found for {market_name}")
+            print(f"데이터를 찾을 수 없음: {market_name}")
             return None
 
-        # Plotly 차트 생성
-        fig = go.Figure(
-            data=[
-                go.Candlestick(
-                    x=hist.index,
-                    open=hist["Open"],
-                    high=hist["High"],
-                    low=hist["Low"],
-                    close=hist["Close"],
-                    name=market_name,
-                )
-            ]
-        )
-
-        # 차트 스타일링
-        fig.update_layout(
-            title=f"{market_name} Price Movement",
-            yaxis_title="Price",
-            template="plotly_white",
-            xaxis_rangeslider_visible=False,
-            width=800,
-            height=500,
-        )
-
-        # 저장 경로 설정 및 디렉토리 생성
+        # 저장 경로 설정
         save_path = get_image_filepath(market_name, date)
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
-        # 이미지 저장
-        fig.write_image(save_path)
+        # 한글 제목 사용
+        kr_name = MARKET_NAMES_KR.get(market_name, market_name)
+
+        # 차트 생성 및 저장
+        mpf.plot(
+            hist,
+            type="candle",
+            title=f"{kr_name} 가격 추이",
+            savefig=save_path,
+            style=s,
+            figsize=(10, 6),
+            volume=True,
+            panel_ratios=(5, 1),  # 가격:거래량 패널 비율
+            ylabel="가격",
+            ylabel_lower="거래량",
+        )
+
+        plt.close()
         return save_path
 
     except Exception as e:
-        print(f"Error generating chart for {market_name}: {str(e)}")
+        print(f"차트 생성 중 오류 발생 ({market_name}): {str(e)}")
         return None
 
 
