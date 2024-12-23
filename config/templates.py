@@ -17,7 +17,7 @@ REPORT_TEMPLATE = """
 ## 5. 주요 뉴스
 {news_summary}
 
-## 6. 다가오는 경제 지표
+## 6. 주요 경제 지표
 {economic_calendar}
 """
 

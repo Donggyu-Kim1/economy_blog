@@ -1,0 +1,101 @@
+[2024-12-23 22:12:20] INFO - 데이터 수집 시작: 2024-12-23
+[2024-12-23 22:12:21] INFO - 미국 시장 데이터 수집 완료: 
+[2024-12-23 22:12:22] INFO - 한국 시장 데이터 수집 완료: 
+[2024-12-23 22:12:22] INFO - 미국 국채 데이터 수집 완료: 
+[2024-12-23 22:12:23] INFO - 환율 데이터 수집 완료: 
+[2024-12-23 22:12:23] INFO - 뉴스 데이터 수집 완료: 
+[2024-12-23 22:12:31] INFO - 경제 지표 데이터 수집 완료: 
+[2024-12-23 22:12:31] INFO - 데이터 수집 완료
+[2024-12-23 22:12:31] INFO - 데이터 처리 시작
+[2024-12-23 22:12:31] INFO - 처리 단계 '미국 시장 분석' 완료: 
+[2024-12-23 22:12:31] INFO - 처리 단계 '한국 시장 분석' 완료: 
+[2024-12-23 22:12:31] INFO - 처리 단계 '미국 국채 분석' 완료: 
+[2024-12-23 22:12:31] INFO - 처리 단계 '환율 분석' 완료: 
+[2024-12-23 22:12:31] INFO - 처리 단계 '뉴스 분석' 완료: 
+[2024-12-23 22:12:31] ERROR - 데이터 처리 중 에러 발생
+Traceback (most recent call last):
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\report_generator.py", line 103, in process_data
+    processed["calendar_summary"] = self.processor.process_economic_calendar(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 596, in process_economic_calendar
+    priority = get_indicator_priority(indicator)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 526, in get_indicator_priority
+    name = indicator.get("indicator", "").lower()
+           ^^^^^^^^^^^^^
+AttributeError: 'EconomicEvent' object has no attribute 'get'
+[2024-12-23 22:12:31] ERROR - 리포트 생성 중 에러 발생
+Traceback (most recent call last):
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\report_generator.py", line 122, in generate_report
+    processed_data = self.process_data(data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\report_generator.py", line 103, in process_data
+    processed["calendar_summary"] = self.processor.process_economic_calendar(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 596, in process_economic_calendar
+    priority = get_indicator_priority(indicator)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 526, in get_indicator_priority
+    name = indicator.get("indicator", "").lower()
+           ^^^^^^^^^^^^^
+AttributeError: 'EconomicEvent' object has no attribute 'get'
+[2024-12-23 22:12:31] ERROR - 리포트 생성 실패
+[2024-12-23 22:20:22] INFO - 데이터 수집 시작: 2024-12-23
+[2024-12-23 22:20:23] INFO - 미국 시장 데이터 수집 완료: 
+[2024-12-23 22:20:24] INFO - 한국 시장 데이터 수집 완료: 
+[2024-12-23 22:20:24] INFO - 미국 국채 데이터 수집 완료: 
+[2024-12-23 22:20:25] INFO - 환율 데이터 수집 완료: 
+[2024-12-23 22:20:25] INFO - 뉴스 데이터 수집 완료: 
+[2024-12-23 22:20:35] INFO - 경제 지표 데이터 수집 완료: 
+[2024-12-23 22:20:35] INFO - 데이터 수집 완료
+[2024-12-23 22:20:35] INFO - 데이터 처리 시작
+[2024-12-23 22:20:35] INFO - 처리 단계 '미국 시장 분석' 완료: 
+[2024-12-23 22:20:35] INFO - 처리 단계 '한국 시장 분석' 완료: 
+[2024-12-23 22:20:35] INFO - 처리 단계 '미국 국채 분석' 완료: 
+[2024-12-23 22:20:35] INFO - 처리 단계 '환율 분석' 완료: 
+[2024-12-23 22:20:35] INFO - 처리 단계 '뉴스 분석' 완료: 
+[2024-12-23 22:20:35] ERROR - 데이터 처리 중 에러 발생
+Traceback (most recent call last):
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\report_generator.py", line 103, in process_data
+    processed["calendar_summary"] = self.processor.process_economic_calendar(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 609, in process_economic_calendar
+    priority = get_indicator_priority(indicator)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 539, in get_indicator_priority
+    name = indicator.get("indicator", "").lower()
+           ^^^^^^^^^^^^^
+AttributeError: 'EconomicEvent' object has no attribute 'get'
+[2024-12-23 22:20:35] ERROR - 리포트 생성 중 에러 발생
+Traceback (most recent call last):
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\report_generator.py", line 122, in generate_report
+    processed_data = self.process_data(data)
+                     ^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\report_generator.py", line 103, in process_data
+    processed["calendar_summary"] = self.processor.process_economic_calendar(
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 609, in process_economic_calendar
+    priority = get_indicator_priority(indicator)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\kims0\OneDrive\바탕 화면\market_report\src\data_processor.py", line 539, in get_indicator_priority
+    name = indicator.get("indicator", "").lower()
+           ^^^^^^^^^^^^^
+AttributeError: 'EconomicEvent' object has no attribute 'get'
+[2024-12-23 22:20:35] ERROR - 리포트 생성 실패
+[2024-12-23 22:31:46] INFO - 데이터 수집 시작: 2024-12-23
+[2024-12-23 22:31:47] INFO - 미국 시장 데이터 수집 완료: 
+[2024-12-23 22:31:48] INFO - 한국 시장 데이터 수집 완료: 
+[2024-12-23 22:31:48] INFO - 미국 국채 데이터 수집 완료: 
+[2024-12-23 22:31:49] INFO - 환율 데이터 수집 완료: 
+[2024-12-23 22:31:50] INFO - 뉴스 데이터 수집 완료: 
+[2024-12-23 22:31:58] INFO - 경제 지표 데이터 수집 완료: 
+[2024-12-23 22:31:58] INFO - 데이터 수집 완료
+[2024-12-23 22:31:58] INFO - 데이터 처리 시작
+[2024-12-23 22:31:58] INFO - 처리 단계 '미국 시장 분석' 완료: 
+[2024-12-23 22:31:58] INFO - 처리 단계 '한국 시장 분석' 완료: 
+[2024-12-23 22:31:58] INFO - 처리 단계 '미국 국채 분석' 완료: 
+[2024-12-23 22:31:58] INFO - 처리 단계 '환율 분석' 완료: 
+[2024-12-23 22:31:58] INFO - 처리 단계 '뉴스 분석' 완료: 
+[2024-12-23 22:31:58] INFO - 처리 단계 '경제 지표 분석' 완료: 
+[2024-12-23 22:31:58] INFO - 데이터 처리 완료
+[2024-12-23 22:31:58] INFO - 리포트 생성 완료: c:\Users\kims0\OneDrive\바탕 화면\market_report\reports\2024-12-23_market_report.md
