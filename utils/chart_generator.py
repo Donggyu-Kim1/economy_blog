@@ -9,7 +9,11 @@ import mplfinance as mpf
 import matplotlib.font_manager as fm
 
 # 한글 폰트 설정
-font_path = "C:/Windows/Fonts/malgun.ttf"  # 맑은 고딕 폰트 경로
+if os.name == "nt":  # Windows
+    font_path = "C:/Windows/Fonts/malgun.ttf"
+else:  # Linux
+    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
+
 font_name = fm.FontProperties(fname=font_path).get_name()
 plt.rcParams["font.family"] = font_name
 
