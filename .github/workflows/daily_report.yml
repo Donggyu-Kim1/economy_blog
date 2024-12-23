@@ -49,8 +49,7 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git add reports/
         git add logs/
-        # 변경사항이 있는 경우에만 커밋
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update market report: $(date +'%Y-%m-%d')" && git push)
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update market report: $(date +'%Y-%m-%d')" && git push https://${{ secrets.GH_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git)
 
     - name: Upload report as artifact
       uses: actions/upload-artifact@v3
