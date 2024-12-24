@@ -45,7 +45,7 @@ NEWS_TEMPLATE = """
 ### {title}
 - 출처: {source}
 - 시간: {published_at}
-{summary}
+- 요약: {summary}
 """
 
 # 경제 지표 템플릿

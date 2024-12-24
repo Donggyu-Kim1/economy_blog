@@ -2,8 +2,8 @@ name: Daily Market Report Generation
 
 on:
   schedule:
-    # 매일 한국 시간 오후 4시 (UTC 07:00)에 실행
-    - cron: '0 7 * * 1-5'  # 평일에만 실행
+    # 매일 한국 시간 오후 5시 (UTC 08:00)에 실행
+    - cron: '0 8 * * 1-5'  # 평일에만 실행
   
   # 수동 실행 옵션 추가
   workflow_dispatch:
