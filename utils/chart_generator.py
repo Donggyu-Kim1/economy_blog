@@ -1,6 +1,6 @@
 import os
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import yfinance as yf
 from typing import Optional
 import sys
@@ -41,6 +41,28 @@ MARKET_NAMES_KR = {
 }
 
 
+def get_market_end_time(market_name: str) -> datetime:
+    """시장별 장 마감 시간 반환"""
+    now = datetime.now(timezone(timedelta(hours=9)))  # KST
+
+    if market_name in ["KOSPI", "KOSDAQ"]:
+        # 한국 시장 (15:30 KST 마감)
+        market_close = now.replace(hour=15, minute=30, second=0, microsecond=0)
+
+        # 현재 시간이 장 마감 이전이면 전일로 설정
+        if now.time() < market_close.time():
+            market_close -= timedelta(days=1)
+
+        # 주말인 경우 금요일로 조정
+        while market_close.weekday() > 4:  # 5=토요일, 6=일요일
+            market_close -= timedelta(days=1)
+
+        return market_close
+    else:
+        # 미국 시장
+        return now
+
+
 def generate_price_chart(
     ticker: str,
     market_name: str,
@@ -48,8 +70,8 @@ def generate_price_chart(
     lookback_days: int = LOOKBACK_DAYS,
 ) -> Optional[str]:
     try:
-        date = date or datetime.now().strftime(DATE_FORMAT)
-        end_date = datetime.strptime(date, DATE_FORMAT)
+        # 시장별 적절한 종료 시점 설정
+        end_date = get_market_end_time(market_name)
         start_date = end_date - timedelta(days=lookback_days)
 
         # 티커 형식 조정
@@ -58,16 +80,20 @@ def generate_price_chart(
         elif not ticker.startswith("^"):
             ticker = f"^{ticker}"
 
-        # 데이터 수집
+        # 데이터 수집 - interval을 1d로 명시적 지정
         yf_ticker = yf.Ticker(ticker)
-        hist = yf_ticker.history(start=start_date, end=end_date)
+        hist = yf_ticker.history(
+            start=start_date.strftime("%Y-%m-%d"),
+            end=(end_date + timedelta(days=1)).strftime("%Y-%m-%d"),
+            interval="1d",
+        )
 
         if hist.empty:
             print(f"데이터를 찾을 수 없음: {market_name}")
             return None
 
         # 저장 경로 설정
-        save_path = get_image_filepath(market_name, date)
+        save_path = get_image_filepath(market_name, end_date.strftime(DATE_FORMAT))
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
         # 한글 제목 사용
@@ -107,13 +133,13 @@ def generate_all_charts(date: Optional[str] = None) -> bool:
     """
     success = True
 
-    # 미국 시장 차트 생성
-    for market_name, ticker in US_INDICES.items():
+    # 한국 시장 차트 먼저 생성 (우선순위 변경)
+    for market_name, ticker in KR_INDICES.items():
         if not generate_price_chart(ticker, market_name, date):
             success = False
 
-    # 한국 시장 차트 생성
-    for market_name, ticker in KR_INDICES.items():
+    # 미국 시장 차트 생성
+    for market_name, ticker in US_INDICES.items():
         if not generate_price_chart(ticker, market_name, date):
             success = False
 
@@ -122,12 +148,12 @@ def generate_all_charts(date: Optional[str] = None) -> bool:
 
 if __name__ == "__main__":
     # 모듈 테스트
-    print("Testing chart generation...")
+    print("차트 생성 테스트 시작...")
     try:
         success = generate_all_charts()
         if success:
-            print("All charts generated successfully")
+            print("모든 차트가 성공적으로 생성되었습니다")
         else:
-            print("Some charts failed to generate")
+            print("일부 차트 생성에 실패했습니다")
     except Exception as e:
-        print(f"Test failed with error: {str(e)}")
+        print(f"테스트 실패: {str(e)}")

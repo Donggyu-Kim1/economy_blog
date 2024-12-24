@@ -37,7 +37,7 @@ def get_market_data(
         start_date = end_date - timedelta(days=lookback_days)
 
         # 과거 데이터 조회
-        hist = yf_ticker.history(start=start_date, end=end_date)
+        hist = yf_ticker.history(start=start_date, end=end_date, interval="1d")
 
         if hist.empty:
             print(f"Warning: No data found for market {ticker}")

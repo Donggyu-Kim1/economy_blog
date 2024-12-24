@@ -36,13 +36,13 @@ class ReportGenerator:
         data = {}
 
         try:
-            # 미국 시장 데이터 수집
-            data["us_market"] = get_all_us_market_data()
-            logger.log_data_collection("미국 시장", bool(data["us_market"]))
-
             # 한국 시장 데이터 수집
             data["kr_market"] = get_all_kr_market_data()
             logger.log_data_collection("한국 시장", bool(data["kr_market"]))
+
+            # 미국 시장 데이터 수집
+            data["us_market"] = get_all_us_market_data()
+            logger.log_data_collection("미국 시장", bool(data["us_market"]))
 
             # 미국 국채 데이터 수집
             data["us_treasury"] = get_all_treasury_data()

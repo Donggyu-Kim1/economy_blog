@@ -2,14 +2,14 @@
 REPORT_TEMPLATE = """
 # {date} 시장 동향 리포트
 
-## 1. 미국 시장 동향
+## 1. 한국 시장 동향
+{kr_market_summary}
+
+## 2. 미국 시장 동향
 {us_market_summary}
 
-## 2. 미국 국채 수익률
+## 3. 미국 국채 수익률
 {us_treasury_summary}
-
-## 3. 한국 시장 동향
-{kr_market_summary}
 
 ## 4. 주요 환율
 {forex_summary}

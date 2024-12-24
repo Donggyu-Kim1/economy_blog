@@ -1,123 +1,312 @@
-from fredapi import Fred
-import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium_stealth import stealth
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-import sys
-import os
-from dataclasses import dataclass
-
-# 프로젝트 루트 디렉토리를 Python 경로에 추가
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(project_root)
-
-from config.settings import (
-    FREDAPI_KEY,
-    ECONOMIC_INDICATORS,
-    CALENDAR_LOOKBACK_DAYS,
-)
-
-
-@dataclass
-class EconomicEvent:
-    """경제 지표 이벤트를 표현하는 데이터 클래스"""
-
-    date: str
-    indicator: str
-    value: float
-    previous_value: Optional[float] = None
-    forecast_value: Optional[float] = None
-    description: Optional[str] = None
+from typing import List, Dict, Any, Optional
+from zoneinfo import ZoneInfo
+from webdriver_manager.chrome import ChromeDriverManager
+import time
 
 
 class EconomicCalendar:
-    """FRED API를 사용하여 경제 지표 데이터를 관리하는 클래스"""
-
-    # 지표명 한글 매핑
-    INDICATOR_NAMES = {
-        "GDP": "국내총생산(GDP)",
-        "UNRATE": "실업률",
-        "CPIAUCSL": "소비자물가지수",
-        "FEDFUNDS": "기준금리",
-        "INDPRO": "산업생산지수",
-        "PAYEMS": "비농업부문고용",
-        "PCE": "개인소비지출",
-        "HOUST": "주택착공건수",
-        "BOGMBASE": "본원통화",
-        "RETAILSMNSA": "소매판매",
-    }
-
     def __init__(self):
-        """FRED API 클라이언트 초기화"""
-        if not FREDAPI_KEY:
-            raise ValueError("FRED API key is not set in environment variables")
-        self.fred = Fred(api_key=FREDAPI_KEY)
+        self.base_url = "https://www.investing.com/economic-calendar/"
+        self.seen_events = set()
 
-    def get_recent_data(self) -> List[EconomicEvent]:
-        """최근 발표된 경제지표 데이터를 조회"""
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=CALENDAR_LOOKBACK_DAYS)
+    def get_search_dates(self) -> tuple[datetime, datetime]:
+        """
+        현재 한국 시간 날짜의 데이터를 얻기 위한 ET 검색 날짜 범위를 반환
+        예: 한국시간 24일이면
+            ET 23일 10:00 ~ ET 25일 10:00 범위의 데이터 검색
 
-        recent_events = []
+        Returns:
+            tuple[datetime, datetime]: 검색 시작일과 종료일 (ET 기준)
+        """
+        # 현재 한국 시간
+        now_kst = datetime.now(ZoneInfo("Asia/Seoul"))
 
-        for indicator_name, series_id in ECONOMIC_INDICATORS.items():
-            try:
-                # 시계열 데이터 조회
-                series = self.fred.get_series(
-                    series_id, start_date=start_date, end_date=end_date
-                )
+        # 한국 시간으로 오늘 자정
+        kst_today = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
 
-                if not series.empty:
-                    # 최신 데이터와 이전 데이터 추출
-                    latest_date = series.index[-1]
-                    latest_value = series.iloc[-1]
-                    previous_value = series.iloc[-2] if len(series) > 1 else None
+        # ET 시작일 설정 (KST 00:00 => ET 전날 10:00)
+        et_start = (kst_today).astimezone(ZoneInfo("America/New_York")).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        ) - timedelta(days=1)
 
-                    event = EconomicEvent(
-                        date=latest_date.strftime("%Y-%m-%d"),
-                        indicator=indicator_name,
-                        value=latest_value,
-                        previous_value=previous_value,
-                        description=self.fred.get_series_info(series_id)["title"],
-                    )
-                    recent_events.append(event)
+        # ET 종료일 설정 (ET 시작일 + 2일)
+        et_end = et_start + timedelta(days=2)
 
-            except Exception as e:
-                print(f"Error fetching data for {indicator_name}: {str(e)}")
+        print(f"Search range (ET): {et_start} ~ {et_end}")
+        return et_start, et_end
 
-        return recent_events
+    def setup_driver(self):
+        """크롬 드라이버 설정"""
+        try:
+            options = webdriver.ChromeOptions()
+            options.add_argument("--headless=new")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--window-size=1920x1080")
+            options.add_argument("--enable-javascript")
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_argument("--ignore-certificate-errors")
+            options.add_argument("--ignore-ssl-errors")
+            options.add_experimental_option("excludeSwitches", ["enable-automation"])
+            options.add_experimental_option("useAutomationExtension", False)
 
-    def format_recent_data(self, events: List[EconomicEvent]) -> str:
-        """최근 경제지표 데이터를 문자열로 포맷팅"""
-        formatted_text = "최근 발표된 주요 경제지표:\n\n"
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=options)
 
-        for event in events:
-            change = ""
-            if event.previous_value is not None:
-                pct_change = (
-                    (event.value - event.previous_value) / event.previous_value
-                ) * 100
-                change = f"(전기대비 {pct_change:+.1f}%)"
-
-            # 한글 지표명 사용
-            indicator_name = self.INDICATOR_NAMES.get(event.indicator, event.indicator)
-            formatted_text += (
-                f"- {indicator_name}: {event.value:.2f} {change}\n"
-                f"  날짜: {event.date}\n"
-                f"  설명: {event.description}\n\n"
+            stealth(
+                driver,
+                languages=["en-US", "en"],
+                vendor="Google Inc.",
+                platform="Win32",
+                webgl_vendor="Intel Inc.",
+                renderer="Intel Iris OpenGL Engine",
+                fix_hairline=True,
             )
 
-        return formatted_text
+            return driver
+        except Exception as e:
+            print(f"Error setting up driver: {str(e)}")
+            raise
+
+    def set_date_range(self, driver):
+        """날짜 범위 설정"""
+        try:
+            # ET 기준 검색 날짜 계산
+            et_start, et_end = self.get_search_dates()
+
+            # 날짜 선택기 버튼 클릭
+            date_picker = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "datePickerToggleBtn"))
+            )
+            driver.execute_script("arguments[0].click();", date_picker)
+            time.sleep(2)
+
+            # 날짜 문자열 포맷
+            start_str = et_start.strftime("%Y-%m-%d")
+            end_str = et_end.strftime("%Y-%m-%d")
+            print(f"Selecting date range: {start_str} ~ {end_str}")
+
+            # 시작일과 종료일 선택
+            start_element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, f'[data-date="{start_str}"]')
+                )
+            )
+            end_element = driver.find_element(
+                By.CSS_SELECTOR, f'[data-date="{end_str}"]'
+            )
+
+            # JavaScript로 날짜 선택 실행
+            driver.execute_script("arguments[0].click();", start_element)
+            driver.execute_script("arguments[0].click();", end_element)
+            time.sleep(2)
+
+            # 적용 버튼 클릭
+            apply_button = driver.find_element(By.CSS_SELECTOR, ".datePickerBtn")
+            driver.execute_script("arguments[0].click();", apply_button)
+            time.sleep(2)
+
+        except Exception as e:
+            print(f"Error setting date range: {str(e)}")
+
+    def extract_event_data(self, event) -> Optional[Dict[str, Any]]:
+        """이벤트 데이터 추출 및 KST로 변환"""
+        try:
+            cells = event.find_elements(By.TAG_NAME, "td")
+            if len(cells) < 8:
+                return None
+
+            # ET 시간 추출 및 KST로 변환
+            date_str = event.get_attribute("data-event-datetime")
+            if date_str:
+                try:
+                    # ET 시간을 KST로 변환
+                    et_time = datetime.strptime(date_str, "%Y/%m/%d %H:%M:%S")
+                    et_time = et_time.replace(tzinfo=ZoneInfo("America/New_York"))
+                    kst_time = et_time.astimezone(ZoneInfo("Asia/Seoul"))
+                    time_str = kst_time.strftime("%H:%M")
+                    date_str = kst_time.strftime("%Y-%m-%d")
+                except ValueError:
+                    time_str = cells[0].text.strip()
+                    date_str = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
+            else:
+                time_str = cells[0].text.strip()
+                date_str = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
+
+            event_data = {
+                "time": time_str,
+                "date": date_str,
+                "country": cells[1].text.strip(),
+                "event": cells[3].text.strip(),
+                "importance": "",
+                "actual": cells[4].text.strip() or "N/A",
+                "forecast": cells[5].text.strip() or "N/A",
+                "previous": cells[6].text.strip() or "N/A",
+            }
+
+            # 중요도 추출
+            try:
+                importance_cell = cells[2]
+                cell_html = importance_cell.get_attribute("innerHTML")
+                importance_level = cell_html.count("grayFullBullishIcon")
+                event_data["importance"] = (
+                    "⭐" * importance_level if importance_level > 0 else ""
+                )
+            except Exception as e:
+                print(f"Error extracting importance: {str(e)}")
+
+            return event_data
+
+        except Exception as e:
+            print(f"Error extracting event data: {str(e)}")
+            return None
+
+    def get_important_events(self) -> List[Dict[str, Any]]:
+        """경제 지표 수집"""
+        driver = None
+        events = []
+
+        try:
+            driver = self.setup_driver()
+            driver.get(self.base_url)
+
+            # 기본 설정 및 필터 적용
+            WebDriverWait(driver, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "economic-calendar"))
+            )
+
+            # 쿠키 수락
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
+                ).click()
+                time.sleep(2)
+            except:
+                print("No cookie button or already accepted")
+
+            # 날짜 범위 설정
+            self.set_date_range(driver)
+
+            # 이벤트 수집
+            print("Collecting events...")
+            selectors = [
+                "tr.js-event-item",
+                "#economicCalendarData tbody tr[data-event-datetime]",
+                "#economicCalendarData tbody tr:not(.tablesorter-headerRow):not(.theDay)",
+            ]
+
+            for selector in selectors:
+                try:
+                    found_events = WebDriverWait(driver, 10).until(
+                        EC.presence_of_all_elements_located((By.CSS_SELECTOR, selector))
+                    )
+                    print(
+                        f"\nFound {len(found_events)} events with selector: {selector}"
+                    )
+
+                    for event in found_events:
+                        try:
+                            driver.execute_script(
+                                "arguments[0].scrollIntoView(true);", event
+                            )
+                            time.sleep(0.1)
+
+                            event_data = self.extract_event_data(event)
+                            if event_data:
+                                event_key = (
+                                    f"{event_data['date']}-{event_data['time']}-"
+                                    f"{event_data['country']}-{event_data['event']}"
+                                )
+                                if event_key not in self.seen_events:
+                                    self.seen_events.add(event_key)
+                                    events.append(event_data)
+                                    print(f"Extracted event data: {event_data}")
+                        except Exception as e:
+                            print(f"Error processing event: {str(e)}")
+                            continue
+
+                except Exception as e:
+                    print(f"Error with selector {selector}: {str(e)}")
+                    continue
+
+            return events
+
+        except Exception as e:
+            print(f"Error collecting economic calendar: {str(e)}")
+            return []
+
+        finally:
+            if driver:
+                driver.quit()
+
+    def format_events(self, events: List[Dict[str, Any]]) -> str:
+        """이벤트 포맷팅"""
+        if not events:
+            return "예정된 주요 경제 지표가 없습니다."
+
+        # 현재 한국 시간
+        now_kst = datetime.now(ZoneInfo("Asia/Seoul"))
+        target_date = now_kst.strftime("%Y-%m-%d")
+        next_date = (now_kst + timedelta(days=1)).strftime("%Y-%m-%d")
+
+        # 헤더 추가
+        formatted = [f"{target_date} ~ {next_date} 경제 지표 일정\n"]
+
+        # 중요 이벤트 필터링 (⭐⭐ 이상)
+        important_events = [
+            event for event in events if event["importance"].count("⭐") >= 2
+        ]
+
+        if not important_events:
+            return "예정된 주요 경제 지표가 없습니다."
+
+        # 날짜별로 이벤트 그룹화
+        events_by_date = {}
+        for event in important_events:
+            date = event["date"]
+            # 타겟 날짜의 데이터만 포함
+            if date in [target_date, next_date]:
+                if date not in events_by_date:
+                    events_by_date[date] = []
+                events_by_date[date].append(event)
+
+        # 날짜별로 정렬된 이벤트 포맷팅
+        for date in sorted(events_by_date.keys()):
+            formatted.append(f"\n[{date}]")
+
+            # 해당 날짜의 이벤트를 시간순으로 정렬
+            day_events = sorted(events_by_date[date], key=lambda x: x["time"])
+
+            for event in day_events:
+                formatted.append(
+                    f"{event['time']} [{event['country']}] {event['importance']} {event['event']}"
+                )
+                if event["actual"] != "N/A":
+                    formatted.append(f"  발표: {event['actual']}")
+                if event["forecast"] != "N/A":
+                    formatted.append(f"  예상: {event['forecast']}")
+                if event["previous"] != "N/A":
+                    formatted.append(f"  이전: {event['previous']}")
+                formatted.append("")
+
+        return "\n".join(formatted).strip()
 
 
 if __name__ == "__main__":
-    # 모듈 테스트
     calendar = EconomicCalendar()
 
-    print("Testing economic calendar...")
+    print("Testing economic calendar crawler...")
     try:
-        # 최근 데이터 조회 테스트
-        recent_events = calendar.get_recent_data()
-        print(calendar.format_recent_data(recent_events))
-
+        events = calendar.get_important_events()
+        print(calendar.format_events(events))
     except Exception as e:
         print(f"Test failed with error: {str(e)}")

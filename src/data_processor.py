@@ -431,42 +431,23 @@ class DataProcessor:
         if not calendar_data:
             return "경제 지표 데이터를 가져올 수 없습니다."
 
-        def get_priority(event: EconomicEvent) -> int:
-            """지표의 중요도를 계산"""
-            priority = 0
-            name = event.indicator.lower()
-            desc = (event.description or "").lower()
+        # 날짜별로 정렬 (최신 순)
+        calendar_data.sort(key=lambda x: x.date, reverse=True)
 
-            # 주요 지표 우선순위
-            for key, value in {
-                "gdp": 5,
-                "실업률": 5,
-                "unrate": 5,
-                "소비자물가지수": 5,
-                "cpi": 5,
-                "기준금리": 5,
-                "fedfunds": 5,
-                "비농업부문고용": 4,
-                "payems": 4,
-                "산업생산": 3,
-                "indpro": 3,
-                "소매판매": 3,
-                "retail": 3,
-            }.items():
-                if key in name or key in desc:
-                    priority = max(priority, value)
-            return priority
+        # 최신 날짜 확인
+        if calendar_data:
+            latest_date = calendar_data[0].date
+            current_month = datetime.strptime(latest_date, "%Y-%m-%d").strftime(
+                "%Y년 %m월"
+            )
+        else:
+            return "이번 달 발표된 경제지표가 없습니다."
 
-        # 중요 지표 필터링 및 정렬
-        indicators = [(evt, get_priority(evt)) for evt in calendar_data]
-        indicators = [(evt, p) for evt, p in indicators if p > 0]
-        indicators.sort(key=lambda x: (-x[1], x[0].date))
-
-        # 요약문 생성
-        summary = ["주요 경제 지표 현황\n"]
+        summary = [f"{current_month} 발표된 주요 경제지표\n"]
         current_date = None
 
-        for event, _ in indicators:
+        for event in calendar_data:
+            # 날짜가 바뀔 때마다 새로운 섹션 시작
             if event.date != current_date:
                 current_date = event.date
                 summary.append(f"\n[{current_date}]")
@@ -475,32 +456,47 @@ class DataProcessor:
             indicator_name = EconomicCalendar.INDICATOR_NAMES.get(
                 event.indicator, event.indicator
             )
-            info = f"- {indicator_name}"
-            if event.description:
-                info += f" ({event.description})"
-            summary.append(info)
 
-            # 현재값과 변화율
+            # 기본 정보 추가
+            summary.append(f"- {indicator_name}")
+
+            # 현재값과 변화율 계산
             if event.value is not None:
-                value_text = f"  현재: {event.value:.2f}"
-                if event.previous_value is not None:
-                    change = (
+                # 지표별 포맷팅 규칙 적용
+                if "gdp" in event.indicator.lower():
+                    value_format = f"{event.value:,.2f}B"  # GDP는 단위가 Billions
+                elif "payems" in event.indicator.lower():
+                    value_format = f"{event.value:,.0f}K"  # 고용은 천 단위
+                else:
+                    value_format = f"{event.value:,.2f}"
+
+                value_text = f"  현재: {value_format}"
+
+                # 변화율 계산 및 표시
+                if event.previous_value is not None and event.previous_value != 0:
+                    pct_change = (
                         (event.value - event.previous_value) / event.previous_value
                     ) * 100
-                    direction = "상승" if change > 0 else "하락"
-                    value_text += f" (전기 대비 {abs(change):.1f}% {direction})"
+
+                    # 변화율이 너무 크면 절대값 차이로 표시
+                    if abs(pct_change) > 100:
+                        abs_change = event.value - event.previous_value
+                        if "gdp" in event.indicator.lower():
+                            change_text = f"(전기대비 {abs_change:+,.2f}B)"
+                        elif "payems" in event.indicator.lower():
+                            change_text = f"(전기대비 {abs_change:+,.0f}K)"
+                        else:
+                            change_text = f"(전기대비 {abs_change:+,.2f})"
+                    else:
+                        change_text = f"(전기대비 {pct_change:+.1f}%)"
+
+                    value_text += f" {change_text}"
+
                 summary.append(value_text)
 
-            # 예상치 비교
-            if event.forecast_value is not None:
-                surprise = (
-                    "상회"
-                    if event.value > event.forecast_value
-                    else "하회" if event.value < event.forecast_value else "부합"
-                )
-                summary.append(
-                    f"  예상치: {event.forecast_value:.2f} (예상치 {surprise})"
-                )
+            # 지표 설명 추가
+            if event.description:
+                summary.append(f"  설명: {event.description}")
 
             summary.append("")  # 공백 라인 추가
 
