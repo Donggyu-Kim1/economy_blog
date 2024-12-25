@@ -12,7 +12,10 @@
   - 미국 국채 수익률 (2년물, 10년물, 30년물)
   - 주요 통화 환율 (USD, EUR, JPY, CNY)
 - 경제 뉴스 수집
-- 주요 경제지표 데이터 수집
+- 주요 경제지표 데이터 수집 (Investing.com 데이터)
+  - 중요도(⭐⭐ 이상) 기반 필터링
+  - 국가별 주요 경제지표
+  - 실제/예상/이전 값 비교
 - 시각화 차트 생성
 - 마크다운 형식의 리포트 자동 생성
 
@@ -54,7 +57,16 @@ NEWSAPI_KEY=your_newsapi_key
 FREDAPI_KEY=your_fredapi_key
 ```
 
-3. 리포트 생성 실행:
+3. Chrome 웹드라이버 설치:
+```bash
+# Windows
+choco install chromedriver
+
+# Linux
+apt-get install chromium-chromedriver
+```
+
+4. 리포트 생성 실행:
 ```python
 from src.report_generator import generate_daily_report
 
@@ -67,11 +79,13 @@ print(f"Report generated: {report_path}")
 1. 데이터 수집 (`utils/`)
    - yfinance: 시장 데이터
    - NewsAPI: 경제 뉴스
-   - FRED API: 경제지표
+   - Investing.com: 경제지표 데이터
+   - Selenium: 웹 스크래핑
 
 2. 데이터 처리 (`src/data_processor.py`)
    - 수집된 데이터 분석
    - 시장 동향 요약 생성
+   - 경제지표 중요도 기반 필터링
    - 차트 생성
 
 3. 리포트 생성 (`src/markdown_builder.py`)
@@ -85,12 +99,14 @@ GitHub Actions를 통해 매일 지정된 시간에 자동으로 리포트를 �
 
 1. `.github/workflows/daily_report.yml` 설정
 2. Secrets에 필요한 API 키 등록
-3. 리포트 자동 생성 및 저장
+3. Chrome 웹드라이버 설정
+4. 리포트 자동 생성 및 저장
 
 ## 에러 처리 및 로깅
 
 - 각 단계별 로그 기록
 - 데이터 수집 실패 시 대체 로직
+- 웹 스크래핑 예외 처리
 - 상세한 에러 메시지 및 스택 트레이스 저장
 
 ## 문서화
@@ -99,3 +115,10 @@ GitHub Actions를 통해 매일 지정된 시간에 자동으로 리포트를 �
 - 함수별 독스트링
 - 타입 힌팅 사용
 - 예외 처리 명시
+
+## 변경 이력
+
+- 2024-12-25: 경제지표 수집 기능 개선
+  - Investing.com 데이터 수집 추가
+  - 중요도(⭐) 기반 필터링 구현
+  - 상세 경제지표 정보 표시
