@@ -1,7 +1,7 @@
 from typing import Dict, List, Any
 from datetime import datetime, timedelta, timezone
 import pandas as pd
-from config.templates import NEWS_TEMPLATE
+from config.templates import NEWS_TEMPLATE, CALENDAR_TEMPLATE
 
 
 class DataProcessor:
@@ -460,21 +460,23 @@ class DataProcessor:
 
         # 날짜별로 정렬된 이벤트 포맷팅
         for date in sorted(events_by_date.keys()):
-            formatted.append(f"\n[{date}]")
+            formatted.append(f"\n## {date}")
 
             # 해당 날짜의 이벤트를 시간순으로 정렬
             day_events = sorted(events_by_date[date], key=lambda x: x["time"])
 
             for event in day_events:
-                formatted.append(
-                    f"{event['time']} [{event['country']}] {event['importance']} {event['event']}"
+                # CALENDAR_TEMPLATE 사용
+                event_text = CALENDAR_TEMPLATE.format(
+                    date=date,
+                    time=event["time"],
+                    country=event["country"],
+                    importance=event["importance"],
+                    event=event["event"],
+                    actual=event["actual"] if event["actual"] != "N/A" else "",
+                    forecast=event["forecast"] if event["forecast"] != "N/A" else "",
+                    previous=event["previous"] if event["previous"] != "N/A" else "",
                 )
-                if event["actual"] != "N/A":
-                    formatted.append(f"  발표: {event['actual']}")
-                if event["forecast"] != "N/A":
-                    formatted.append(f"  예상: {event['forecast']}")
-                if event["previous"] != "N/A":
-                    formatted.append(f"  이전: {event['previous']}")
-                formatted.append("")
+                formatted.append(event_text)
 
         return "\n".join(formatted).strip()
