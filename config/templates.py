@@ -51,7 +51,8 @@ NEWS_TEMPLATE = """
 # 경제 지표 템플릿
 CALENDAR_TEMPLATE = """
 ### {date}
-- {time} {event}
+- {time} [{country}] {importance} {event}
+- 발표: {actual}
 - 예상: {forecast}
 - 이전: {previous}
 """

@@ -57,8 +57,14 @@ class ReportGenerator:
             logger.log_data_collection("뉴스", bool(data["news"]))
 
             # 경제 지표 데이터 수집
-            data["calendar"] = self.calendar.get_recent_data()
-            logger.log_data_collection("경제 지표", bool(data["calendar"]))
+            events = self.calendar.get_important_events()
+            if events:
+                data["calendar"] = events
+                logger.log_data_collection("경제 지표", True)
+            else:
+                data["calendar"] = []
+                logger.log_data_collection("경제 지표", False, "No events found")
+                logger.log_data_collection("경제 지표", bool(data["calendar"]))
 
         except Exception as e:
             logger.error("데이터 수집 중 에러 발생", exc_info=e)

@@ -19,9 +19,8 @@ class EconomicCalendar:
 
     def get_search_dates(self) -> tuple[datetime, datetime]:
         """
-        현재 한국 시간 날짜의 데이터를 얻기 위한 ET 검색 날짜 범위를 반환
-        예: 한국시간 24일이면
-            ET 23일 10:00 ~ ET 25일 10:00 범위의 데이터 검색
+        한국시간 기준으로 오늘 0시부터 다음날 23:59까지의 데이터를 얻기 위한
+        ET 검색 날짜 범위를 반환
 
         Returns:
             tuple[datetime, datetime]: 검색 시작일과 종료일 (ET 기준)
@@ -30,17 +29,23 @@ class EconomicCalendar:
         now_kst = datetime.now(ZoneInfo("Asia/Seoul"))
 
         # 한국 시간으로 오늘 자정
-        kst_today = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
+        kst_start = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
 
-        # ET 시작일 설정 (KST 00:00 => ET 전날 10:00)
-        et_start = (kst_today).astimezone(ZoneInfo("America/New_York")).replace(
+        # 한국 시간으로 다음날 23:59:59
+        kst_end = (kst_start + timedelta(days=1)).replace(hour=23, minute=59, second=59)
+
+        # KST를 ET로 변환
+        et_start = kst_start.astimezone(ZoneInfo("America/New_York"))
+        et_end = kst_end.astimezone(ZoneInfo("America/New_York"))
+
+        # ET 시작시간을 전날 10시로 조정
+        et_start = (et_start - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0
-        ) - timedelta(days=1)
+        )
 
-        # ET 종료일 설정 (ET 시작일 + 2일)
-        et_end = et_start + timedelta(days=2)
+        print(f"KST range: {kst_start} ~ {kst_end}")
+        print(f"ET range: {et_start} ~ {et_end}")
 
-        print(f"Search range (ET): {et_start} ~ {et_end}")
         return et_start, et_end
 
     def setup_driver(self):
@@ -83,37 +88,16 @@ class EconomicCalendar:
             # ET 기준 검색 날짜 계산
             et_start, et_end = self.get_search_dates()
 
-            # 날짜 선택기 버튼 클릭
-            date_picker = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.ID, "datePickerToggleBtn"))
-            )
-            driver.execute_script("arguments[0].click();", date_picker)
-            time.sleep(2)
-
             # 날짜 문자열 포맷
             start_str = et_start.strftime("%Y-%m-%d")
             end_str = et_end.strftime("%Y-%m-%d")
             print(f"Selecting date range: {start_str} ~ {end_str}")
 
-            # 시작일과 종료일 선택
-            start_element = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located(
-                    (By.CSS_SELECTOR, f'[data-date="{start_str}"]')
-                )
-            )
-            end_element = driver.find_element(
-                By.CSS_SELECTOR, f'[data-date="{end_str}"]'
-            )
-
-            # JavaScript로 날짜 선택 실행
-            driver.execute_script("arguments[0].click();", start_element)
-            driver.execute_script("arguments[0].click();", end_element)
-            time.sleep(2)
-
-            # 적용 버튼 클릭
-            apply_button = driver.find_element(By.CSS_SELECTOR, ".datePickerBtn")
-            driver.execute_script("arguments[0].click();", apply_button)
-            time.sleep(2)
+            # URL에 직접 날짜 파라미터 추가
+            date_params = f"?dateFrom={start_str}&dateTo={end_str}"
+            new_url = self.base_url + date_params
+            driver.get(new_url)
+            time.sleep(3)
 
         except Exception as e:
             print(f"Error setting date range: {str(e)}")

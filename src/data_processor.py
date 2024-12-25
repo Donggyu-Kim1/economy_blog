@@ -1,7 +1,6 @@
 from typing import Dict, List, Any
 from datetime import datetime, timedelta, timezone
 import pandas as pd
-from utils.calendar import EconomicEvent, EconomicCalendar
 from config.templates import NEWS_TEMPLATE
 
 
@@ -418,86 +417,64 @@ class DataProcessor:
 
         return "\n".join(summary) if summary else "뉴스 데이터를 가져올 수 없습니다."
 
-    def process_economic_calendar(self, calendar_data: List[EconomicEvent]) -> str:
+    def process_economic_calendar(self, calendar_data: List[Dict[str, Any]]) -> str:
         """
         경제 지표 일정을 처리하여 주요 지표 요약을 생성
 
         Args:
-            calendar_data: EconomicEvent 리스트
+            calendar_data: 경제 지표 데이터 리스트
+            [{'time': str, 'date': str, 'country': str, 'event': str,
+              'importance': str, 'actual': str, 'forecast': str, 'previous': str}, ...]
 
         Returns:
             str: 경제 지표 요약 문자열
         """
         if not calendar_data:
-            return "경제 지표 데이터를 가져올 수 없습니다."
+            return "예정된 주요 경제 지표가 없습니다."
 
-        # 날짜별로 정렬 (최신 순)
-        calendar_data.sort(key=lambda x: x.date, reverse=True)
+        # 현재 한국 시간
+        now_kst = datetime.now(timezone(timedelta(hours=9)))
+        target_date = now_kst.strftime("%Y-%m-%d")
+        next_date = (now_kst + timedelta(days=1)).strftime("%Y-%m-%d")
 
-        # 최신 날짜 확인
-        if calendar_data:
-            latest_date = calendar_data[0].date
-            current_month = datetime.strptime(latest_date, "%Y-%m-%d").strftime(
-                "%Y년 %m월"
-            )
-        else:
-            return "이번 달 발표된 경제지표가 없습니다."
+        # 헤더 추가
+        formatted = [f"{target_date} ~ {next_date} 경제 지표 일정\n"]
 
-        summary = [f"{current_month} 발표된 주요 경제지표\n"]
-        current_date = None
+        # 중요 이벤트 필터링 (⭐⭐ 이상)
+        important_events = [
+            event for event in calendar_data if event["importance"].count("⭐") >= 2
+        ]
 
-        for event in calendar_data:
-            # 날짜가 바뀔 때마다 새로운 섹션 시작
-            if event.date != current_date:
-                current_date = event.date
-                summary.append(f"\n[{current_date}]")
+        if not important_events:
+            return "예정된 주요 경제 지표가 없습니다."
 
-            # 한글 지표명 사용
-            indicator_name = EconomicCalendar.INDICATOR_NAMES.get(
-                event.indicator, event.indicator
-            )
+        # 날짜별로 이벤트 그룹화
+        events_by_date = {}
+        for event in important_events:
+            date = event["date"]
+            # 타겟 날짜의 데이터만 포함
+            if date in [target_date, next_date]:
+                if date not in events_by_date:
+                    events_by_date[date] = []
+                events_by_date[date].append(event)
 
-            # 기본 정보 추가
-            summary.append(f"- {indicator_name}")
+        # 날짜별로 정렬된 이벤트 포맷팅
+        for date in sorted(events_by_date.keys()):
+            formatted.append(f"\n[{date}]")
 
-            # 현재값과 변화율 계산
-            if event.value is not None:
-                # 지표별 포맷팅 규칙 적용
-                if "gdp" in event.indicator.lower():
-                    value_format = f"{event.value:,.2f}B"  # GDP는 단위가 Billions
-                elif "payems" in event.indicator.lower():
-                    value_format = f"{event.value:,.0f}K"  # 고용은 천 단위
-                else:
-                    value_format = f"{event.value:,.2f}"
+            # 해당 날짜의 이벤트를 시간순으로 정렬
+            day_events = sorted(events_by_date[date], key=lambda x: x["time"])
 
-                value_text = f"  현재: {value_format}"
+            for event in day_events:
+                formatted.append(
+                    f"{event['time']} [{event['country']}] {event['importance']} {event['event']}"
+                )
+                if event["actual"] != "N/A":
+                    formatted.append(f"  발표: {event['actual']}")
+                if event["forecast"] != "N/A":
+                    formatted.append(f"  예상: {event['forecast']}")
+                if event["previous"] != "N/A":
+                    formatted.append(f"  이전: {event['previous']}")
+                formatted.append("")
 
-                # 변화율 계산 및 표시
-                if event.previous_value is not None and event.previous_value != 0:
-                    pct_change = (
-                        (event.value - event.previous_value) / event.previous_value
-                    ) * 100
-
-                    # 변화율이 너무 크면 절대값 차이로 표시
-                    if abs(pct_change) > 100:
-                        abs_change = event.value - event.previous_value
-                        if "gdp" in event.indicator.lower():
-                            change_text = f"(전기대비 {abs_change:+,.2f}B)"
-                        elif "payems" in event.indicator.lower():
-                            change_text = f"(전기대비 {abs_change:+,.0f}K)"
-                        else:
-                            change_text = f"(전기대비 {abs_change:+,.2f})"
-                    else:
-                        change_text = f"(전기대비 {pct_change:+.1f}%)"
-
-                    value_text += f" {change_text}"
-
-                summary.append(value_text)
-
-            # 지표 설명 추가
-            if event.description:
-                summary.append(f"  설명: {event.description}")
-
-            summary.append("")  # 공백 라인 추가
-
-        return "\n".join(summary).strip()
+        return "\n".join(formatted).strip()
