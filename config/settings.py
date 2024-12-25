@@ -33,7 +33,6 @@ CURRENCIES = ["USD/KRW", "EUR/KRW", "JPY/KRW", "CNY/KRW"]
 
 # API 키 설정
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
-FREDAPI_KEY = os.getenv("FREDAPI_KEY", "")
 
 # 주요 경제지표 FRED 시리즈 ID
 ECONOMIC_INDICATORS = {

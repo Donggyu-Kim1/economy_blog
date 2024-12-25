@@ -54,7 +54,6 @@ pip install -r requirements.txt
 2. 환경변수 설정 (.env 파일 생성):
 ```
 NEWSAPI_KEY=your_newsapi_key
-FREDAPI_KEY=your_fredapi_key
 ```
 
 3. Chrome 웹드라이버 설치:
