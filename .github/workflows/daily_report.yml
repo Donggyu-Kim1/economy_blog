@@ -2,7 +2,7 @@ name: Daily Market Report Generation
 
 on:
   schedule:
-    # 매일 한국 시간 오후 5시 (UTC 08:00)에 실행
+    # 매일 한국 시간 오후 5시 (UTC 08:00)에 실행 
     - cron: '0 8 * * 1-5'  # 평일에만 실행
   
   # 수동 실행 옵션 추가
@@ -21,6 +21,23 @@ jobs:
       with:
         python-version: '3.12'
 
+    # Chrome 설치
+    - name: Install Chrome
+      run: |
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo apt install ./google-chrome-stable_current_amd64.deb
+ 
+    # Chrome Driver 설치
+    - name: Install Chrome Driver
+      uses: nanasess/setup-chromedriver@master
+ 
+    # 가상 디스플레이 설정
+    - name: Setup virtual display
+      run: |
+        export DISPLAY=:99
+        chromedriver --url-base=/wd/hub &
+        sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 &
+ 
     - name: Cache Python dependencies
       uses: actions/cache@v3
       with:
@@ -41,6 +58,10 @@ jobs:
         NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
         FREDAPI_KEY: ${{ secrets.FREDAPI_KEY }}
       run: |
+        # Chrome 및 Chromedriver 버전 확인
+        google-chrome --version
+        chromedriver --version
+        # 리포트 생성
         python -m src.report_generator
 
     - name: Commit and push if there are changes
@@ -58,6 +79,7 @@ jobs:
         path: reports/
         retention-days: 7
 
+    # 에러 발생 시 이슈 생성
     - name: Error notification
       if: failure()
       uses: actions/github-script@v6
@@ -67,5 +89,5 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             title: `Market Report Generation Failed: ${new Date().toISOString()}`,
-            body: `Workflow run failed: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            body: `Workflow run failed: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\nPossible Chrome/Selenium related issues - please check logs.`
           })
