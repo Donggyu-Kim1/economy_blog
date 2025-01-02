@@ -47,6 +47,15 @@ def get_market_data(
         latest = hist.iloc[-1]
         prev = hist.iloc[-2] if len(hist) > 1 else latest
 
+        # 20일 평균 거래량 계산
+        volume_ma20 = hist["Volume"].rolling(window=20).mean()
+        latest_volume_ma20 = volume_ma20.iloc[-1]
+
+        # 현재 거래량과 20일 평균 거래량의 비율
+        volume_ratio = (
+            latest["Volume"] / latest_volume_ma20 if latest_volume_ma20 > 0 else 0
+        )
+
         # 52주 최고가, 최저가 계산
         year_high = hist["High"].max()
         year_low = hist["Low"].min()
@@ -61,6 +70,8 @@ def get_market_data(
             "close": latest["Close"],
             "volume": latest["Volume"],
             "change": daily_change,
+            "volume_ma20": latest_volume_ma20,
+            "volume_ratio": volume_ratio,
             "year_high": year_high,
             "year_low": year_low,
             "year_high_ratio": year_high_ratio,
@@ -101,14 +112,26 @@ def format_market_data(market_name: str, data: Dict[str, Any]) -> str:
     Returns:
         str: 포맷팅된 문자열
     """
+    volume_ratio = data["volume_ratio"]
+    volume_description = (
+        "매우 활발한"
+        if volume_ratio >= 2
+        else (
+            "활발한"
+            if volume_ratio >= 1.5
+            else "평균 수준의" if volume_ratio >= 0.8 else "다소 낮은"
+        )
+    )
+
     return f"""
 {market_name}:
-  종가: {data['close']:,.2f}
-  전일대비: {data['change']:+.2f}%
-  거래량: {data['volume']:,}
-  52주 최고가: {data['year_high']:,.2f}
-  52주 최저가: {data['year_low']:,.2f}
-  고점대비: {data['year_high_ratio']:,.2f}%
+ 종가: {data['close']:,.2f}
+ 전일대비: {data['change']:+.2f}%
+ 거래량: {data['volume']:,} ({volume_ratio:.1f}배, {volume_description})
+ 20일 평균거래량: {data['volume_ma20']:,.0f}
+ 52주 최고가: {data['year_high']:,.2f}
+ 52주 최저가: {data['year_low']:,.2f}
+ 고점대비: {data['year_high_ratio']:,.2f}%
 """
 
 

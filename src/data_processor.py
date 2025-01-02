@@ -68,13 +68,18 @@ class DataProcessor:
             elif info["year_high_ratio"] < -20:
                 summary += "52주 최고가 대비 큰 폭의 조정을 보이고 있으며, "
 
-            # 거래량 분석 (일반적인 거래량 수준 가정)
-            volume_description = (
-                "활발한"
-                if info["volume"] > 1000000000
-                else "평균적인" if info["volume"] > 500000000 else "다소 낮은"
-            )
-            summary += f"{volume_description} 거래량을 기록했습니다. "
+        # 거래량 분석
+        volume_ratio = info["volume_ratio"]
+        if volume_ratio >= 2:
+            volume_description = "매우 활발한"
+        elif volume_ratio >= 1.5:
+            volume_description = "활발한"
+        elif volume_ratio >= 0.8:
+            volume_description = "평균 수준의"
+        else:
+            volume_description = "다소 낮은"
+
+        summary += f"20일 평균 대비 {volume_ratio:.1f}배의 {volume_description} 거래량을 기록했습니다. "
 
         # 가장 큰 변화를 보인 지수에 대한 특별 언급
         summary += (
@@ -154,17 +159,18 @@ class DataProcessor:
             else:
                 summary += f"52주 최고가 대비 {abs(high_ratio):.1f}% 하락한 상태에서 거래되고 있으며, "
 
-            # 거래량 분석 (한국 시장 기준)
-            volume_description = (
-                "매우 활발한"
-                if info["volume"] > 1000000000
-                else (
-                    "활발한"
-                    if info["volume"] > 500000000
-                    else "평균적인" if info["volume"] > 300000000 else "다소 낮은"
-                )
-            )
-            summary += f"{volume_description} 거래량을 보였습니다. "
+        # 거래량 분석
+        volume_ratio = info["volume_ratio"]
+        if volume_ratio >= 2:
+            volume_description = "매우 활발한"
+        elif volume_ratio >= 1.5:
+            volume_description = "활발한"
+        elif volume_ratio >= 0.8:
+            volume_description = "평균 수준의"
+        else:
+            volume_description = "다소 낮은"
+
+        summary += f"20일 평균 대비 {volume_ratio:.1f}배의 {volume_description} 거래량을 기록했습니다. "
 
         # 가장 큰 변화를 보인 지수에 대한 특별 언급
         if abs(max_change_index[1]) > 1:  # 1% 이상 변동 시에만 특별 언급
