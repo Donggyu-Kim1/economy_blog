@@ -9,7 +9,7 @@
 - 시장 데이터 수집 및 분석
   - 미국 주요 지수 (S&P 500, NASDAQ, DOW)
   - 한국 주요 지수 (KOSPI, KOSDAQ)
-  - 미국 국채 수익률 (2년물, 10년물, 30년물)
+  - 미국 국채 수익률 (2년물, 10년물, 30년물) 및 정책금리
   - 주요 통화 환율 (USD, EUR, JPY, CNY)
 - 경제 뉴스 수집
 - 주요 경제지표 데이터 수집 (Investing.com 데이터)
@@ -54,6 +54,7 @@ pip install -r requirements.txt
 2. 환경변수 설정 (.env 파일 생성):
 ```
 NEWSAPI_KEY=your_newsapi_key
+FEDAPI_KEY=your_fedapi_key
 ```
 
 3. Chrome 웹드라이버 설치:
@@ -78,6 +79,7 @@ print(f"Report generated: {report_path}")
 1. 데이터 수집 (`utils/`)
    - yfinance: 시장 데이터
    - NewsAPI: 경제 뉴스
+   - FEDAPI: 미국 정책금리
    - Investing.com: 경제지표 데이터
    - Selenium: 웹 스크래핑
 
@@ -118,6 +120,15 @@ GitHub Actions를 통해 매일 지정된 시간에 자동으로 리포트를 �
 ## 변경 이력
 
 - 2024-12-25: 경제지표 수집 기능 개선
-  - Investing.com 데이터 수집 추가
-  - 중요도(⭐) 기반 필터링 구현
-  - 상세 경제지표 정보 표시
+   - Investing.com 데이터 수집 추가
+   - 중요도(⭐) 기반 필터링 구현
+   - 상세 경제지표 정보 표시
+
+- 2025-01-03: 데이터 분석 방법 개선
+   - setting에 기준 분석 기간 30일에서 365일로 변경
+   - 인덱스 거래량  20일 이동평균 대비 상대값으로 분석
+   - 채권 분석
+      - 수익률 곡선의 역전 여부와 함의를 더 자세히 분석
+      - 3개월/6개월 평균 대비 현재 수준을 통한 추세 분석
+      - 변동성의 장기 평균 대비 현재 수준 분석
+      - 기준금리와의 스프레드를 통한 통화정책 기대 반영

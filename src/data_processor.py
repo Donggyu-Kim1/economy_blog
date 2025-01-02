@@ -205,11 +205,7 @@ class DataProcessor:
         if not data:
             return "미국 국채 수익률 데이터를 가져올 수 없습니다."
 
-        # 수익률 변화 방향 확인
-        changes = {term: info["change"] for term, info in data.items()}
-
-        # 가장 큰 변화를 보인 만기 찾기
-        max_change_treasury = max(changes.items(), key=lambda x: abs(x[1]))
+        summary = []
 
         # 수익률 곡선 분석
         try:
@@ -217,70 +213,64 @@ class DataProcessor:
                 data["10년물"]["yield_rate"] - data["2년물"]["yield_rate"]
             )
             is_inverted = curve_spread_2_10 < 0
+
+            summary.append(
+                f"2년물과 10년물의 스프레드는 {abs(curve_spread_2_10):.3f}%p로, "
+                f"{'수익률 곡선이 역전된 상태입니다. 이는 경기 침체에 대한 시장의 우려를 반영합니다.' if is_inverted else '정상적인 우상향 곡선을 유지하고 있습니다.'}"
+            )
+
+            if not is_inverted and curve_spread_2_10 < 0.5:
+                summary.append(
+                    "다만, 수익률 곡선이 매우 평탄화되어 있어 경기 둔화 우려가 있습니다."
+                )
         except KeyError:
-            curve_spread_2_10 = None
-            is_inverted = None
+            pass
 
-        # 요약문 생성 시작
-        summary = "미국 국채 수익률은 "
-
-        # 전반적인 방향성 판단
-        positive_changes = sum(1 for change in changes.values() if change > 0)
-        negative_changes = sum(1 for change in changes.values() if change < 0)
-
-        if positive_changes > negative_changes:
-            summary += "전반적으로 상승했습니다. "
-        elif positive_changes < negative_changes:
-            summary += "전반적으로 하락했습니다. "
-        else:
-            summary += "혼조세를 보였습니다. "
-
-        # 각 만기별 상세 정보
+        # 각 만기별 상세 분석
         for term, info in data.items():
+            term_summary = []
+
+            # 기본 수익률 정보
             change_direction = "상승" if info["change"] > 0 else "하락"
-            summary += (
+            term_summary.append(
                 f"{term} 수익률은 {info['yield_rate']:.3f}%로 "
-                f"전일 대비 {abs(info['change']):.3f}%p {change_direction}했으며, "
+                f"전일 대비 {abs(info['change']):.3f}%p {change_direction}했습니다."
             )
 
-            # 52주 최고/최저 대비 분석
-            if abs(info["yield_rate"] - info["year_high"]) <= 0.1:
-                summary += "52주 최고 수준에 근접해 있습니다. "
-            elif abs(info["yield_rate"] - info["year_low"]) <= 0.1:
-                summary += "52주 최저 수준에 근접해 있습니다. "
+            # 추세 분석
+            if info["yield_rate"] > info["ma_90"]:
+                term_summary.append(f"3개월 평균({info['ma_90']:.3f}%) 대비 강세이며,")
             else:
-                range_position = (
-                    (info["yield_rate"] - info["year_low"])
-                    / (info["year_high"] - info["year_low"])
-                    * 100
-                )
-                summary += f"52주 변동범위 중 {range_position:.1f}% 수준에서 거래되고 있습니다. "
+                term_summary.append(f"3개월 평균({info['ma_90']:.3f}%) 대비 약세이며,")
 
-        # 수익률 곡선 분석 추가
-        if curve_spread_2_10 is not None:
-            summary += (
-                f"\n2년물과 10년물의 스프레드는 {abs(curve_spread_2_10):.3f}%p로, "
-            )
-            if is_inverted:
-                summary += (
-                    f"수익률 곡선이 역전된 상태입니다. 이는 일반적으로 경기 침체에 대한 "
-                    f"시장의 우려를 반영합니다. "
+            if info["yield_rate"] > info["ma_180"]:
+                term_summary.append(
+                    f"6개월 평균({info['ma_180']:.3f}%) 대비 강세를 보이고 있습니다."
                 )
             else:
-                if curve_spread_2_10 < 0.5:
-                    summary += "수익률 곡선이 매우 평탄화되어 있습니다. "
-                else:
-                    summary += "정상적인 우상향 곡선을 유지하고 있습니다. "
+                term_summary.append(
+                    f"6개월 평균({info['ma_180']:.3f}%) 대비 약세를 보이고 있습니다."
+                )
 
-        # 가장 큰 변화를 보인 만기 강조
-        if abs(max_change_treasury[1]) > 0.05:  # 5bp 이상 변동 시에만 언급
-            summary += (
-                f"\n특히 {max_change_treasury[0]} 수익률이 {abs(max_change_treasury[1]):.3f}%p의 "
-                f"{'상승' if max_change_treasury[1] > 0 else '하락'}을 보이며 "
-                f"가장 큰 변동을 기록했습니다."
-            )
+            # 변동성 분석
+            if info["volatility_ratio"] > 1.2:
+                term_summary.append("최근 변동성이 장기 평균을 크게 상회하고 있습니다.")
+            elif info["volatility_ratio"] < 0.8:
+                term_summary.append("최근 변동성이 장기 평균을 크게 하회하고 있습니다.")
 
-        return summary.strip()
+            # 정책금리 대비 분석
+            if abs(info["fed_spread"]) <= 0.25:
+                term_summary.append(f"현재 수익률은 기준금리 수준과 유사합니다.")
+            else:
+                spread_direction = "높은" if info["fed_spread"] > 0 else "낮은"
+                term_summary.append(
+                    f"현재 수익률은 기준금리 대비 {abs(info['fed_spread']):.2f}%p "
+                    f"{spread_direction} 수준입니다."
+                )
+
+            summary.append(" ".join(term_summary))
+
+        return "\n\n".join(summary)
 
     def process_forex_data(self, data: Dict[str, Dict[str, Any]]) -> str:
         """

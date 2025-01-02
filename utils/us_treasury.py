@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
+from fredapi import Fred
 import sys
 import os
 
@@ -9,7 +10,19 @@ import os
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
 
-from config.settings import US_TREASURIES, LOOKBACK_DAYS
+from config.settings import US_TREASURIES, LOOKBACK_DAYS, FEDAPI_KEY
+
+fred = Fred(api_key=FEDAPI_KEY)
+
+
+def get_fed_rate() -> float:
+    """연방기금금리 목표 상단 가져오기"""
+    try:
+        fed_rate = fred.get_series("DFEDTARU").iloc[-1]
+        return float(fed_rate)
+    except Exception as e:
+        print(f"Error fetching Fed rate: {str(e)}")
+        return 5.50
 
 
 def get_treasury_data(
@@ -44,18 +57,31 @@ def get_treasury_data(
         latest = hist.iloc[-1]
         prev = hist.iloc[-2] if len(hist) > 1 else latest
 
-        # 52주 최고가, 최저가 계산
-        year_high = hist["High"].max()
-        year_low = hist["Low"].min()
+        # 기간별 평균
+        ma_90 = hist["Close"].rolling(window=90).mean().iloc[-1]  # 3개월 평균
+        ma_180 = hist["Close"].rolling(window=180).mean().iloc[-1]  # 6개월 평균
 
-        # 전일 대비 변화 계산 (수익률은 이미 퍼센트 단위이므로 차이를 직접 사용)
-        daily_change = latest["Close"] - prev["Close"]
+        # 변동성 분석
+        last_month = hist["Close"].tail(20)  # 최근 1개월
+        monthly_volatility = last_month.std()
+        long_term_volatility = hist["Close"].std()
+        volatility_ratio = (
+            monthly_volatility / long_term_volatility if long_term_volatility > 0 else 0
+        )
+
+        fed_rate = get_fed_rate()
 
         return {
             "yield_rate": latest["Close"],
-            "change": daily_change,
-            "year_high": year_high,
-            "year_low": year_low,
+            "change": latest["Close"] - prev["Close"],
+            "year_high": hist["High"].max(),
+            "year_low": hist["Low"].min(),
+            "ma_90": ma_90,
+            "ma_180": ma_180,
+            "monthly_volatility": monthly_volatility,
+            "long_term_volatility": long_term_volatility,
+            "volatility_ratio": volatility_ratio,
+            "fed_spread": latest["Close"] - fed_rate,
         }
 
     except Exception as e:
@@ -83,22 +109,32 @@ def get_all_treasury_data() -> Dict[str, Dict[str, Any]]:
 
 
 def format_treasury_data(treasury_name: str, data: Dict[str, Any]) -> str:
-    """
-    국채 수익률 데이터를 보기 좋은 문자열로 포맷팅합니다.
+    # 변동성 설명
+    volatility_desc = (
+        "변동성 크게 확대"
+        if data["volatility_ratio"] > 1.2
+        else (
+            "변동성 크게 축소"
+            if data["volatility_ratio"] < 0.8
+            else "보통 수준의 변동성"
+        )
+    )
 
-    Args:
-        treasury_name (str): 국채 종류
-        data (Dict[str, Any]): 국채 수익률 데이터
+    # 기준금리 대비 설명
+    fed_spread_desc = (
+        "기준금리와 유사"
+        if abs(data["fed_spread"]) <= 0.25
+        else f"기준금리 대비 {abs(data['fed_spread']):.2f}%p {'높음' if data['fed_spread'] > 0 else '낮음'}"
+    )
 
-    Returns:
-        str: 포맷팅된 문자열
-    """
     return f"""
 {treasury_name}:
-  현재수익률: {data['yield_rate']:.3f}%
-  전일대비: {data['change']:+.3f}%p
-  52주 최고: {data['year_high']:.3f}%
-  52주 최저: {data['year_low']:.3f}%
+ 현재수익률: {data['yield_rate']:.3f}% ({data['change']:+.3f}%p)
+ 3개월 평균: {data['ma_90']:.3f}%
+ 6개월 평균: {data['ma_180']:.3f}%
+ 52주 범위: {data['year_low']:.3f}% ~ {data['year_high']:.3f}%
+ 변동성: {volatility_desc}
+ 기준금리: {fed_spread_desc}
 """
 
 

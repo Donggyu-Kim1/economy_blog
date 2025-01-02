@@ -72,7 +72,7 @@ def generate_price_chart(
     try:
         # 시장별 적절한 종료 시점 설정
         end_date = get_market_end_time(market_name)
-        start_date = end_date - timedelta(days=lookback_days)
+        start_date = end_date - timedelta(days=min(lookback_days, 30))
 
         # 티커 형식 조정
         if ticker in KR_INDICES.values():

@@ -19,7 +19,7 @@ REPORT_FILENAME_FORMAT = "{date}_market_report.md"
 IMAGE_FILENAME_FORMAT = "{market_name}_price.png"
 
 # 데이터 수집 설정
-LOOKBACK_DAYS = 30
+LOOKBACK_DAYS = 365
 NEWS_LIMIT = 5
 NEWS_LANGUAGES = ["ko", "en"]
 
@@ -33,6 +33,7 @@ CURRENCIES = ["USD/KRW", "EUR/KRW", "JPY/KRW", "CNY/KRW"]
 
 # API 키 설정
 NEWSAPI_KEY = os.getenv("NEWSAPI_KEY", "")
+FEDAPI_KEY = os.getenv("FEDAPI_KEY", "")
 
 # 주요 경제지표 FRED 시리즈 ID
 ECONOMIC_INDICATORS = {
