@@ -16,6 +16,7 @@ from utils.forex import get_all_forex_data
 from utils.news import get_all_news
 from utils.calendar import EconomicCalendar
 from utils.chart_generator import generate_all_charts
+from utils.buffett_indicator import BuffettIndicator
 from config.settings import DATE_FORMAT
 
 
@@ -29,6 +30,7 @@ class ReportGenerator:
         self.processor = DataProcessor()
         self.builder = MarkdownBuilder(self.date)
         self.calendar = EconomicCalendar()
+        self.buffett_indicator = BuffettIndicator()
 
     def collect_data(self) -> Dict[str, Any]:
         """모든 필요한 데이터 수집"""
@@ -65,6 +67,10 @@ class ReportGenerator:
                 data["calendar"] = []
                 logger.log_data_collection("경제 지표", False, "No events found")
                 logger.log_data_collection("경제 지표", bool(data["calendar"]))
+
+            # Buffett Indicator 데이터 수집
+            data["buffett_indicator"] = self.buffett_indicator.get_current_status()
+            logger.log_data_collection("버핏 지표", bool(data["buffett_indicator"]))
 
         except Exception as e:
             logger.error("데이터 수집 중 에러 발생", exc_info=e)
@@ -106,6 +112,20 @@ class ReportGenerator:
             )
             logger.log_process_step("경제 지표 분석", True)
 
+            # Buffett Indicator 요약 생성
+            if data["buffett_indicator"]:
+                processed["buffett_indicator_summary"] = (
+                    self.processor.process_buffett_indicator_data(
+                        data["buffett_indicator"]
+                    )
+                )
+                logger.log_process_step("버핏 지표 분석", True)
+            else:
+                processed["buffett_indicator_summary"] = (
+                    "버핏 지표 데이터를 가져올 수 없습니다."
+                )
+                logger.log_process_step("버핏 지표 분석", False)
+
         except Exception as e:
             logger.error("데이터 처리 중 에러 발생", exc_info=e)
             raise
@@ -139,6 +159,8 @@ class ReportGenerator:
                 kr_market_summary=processed_data["kr_market_summary"],
                 forex_data=data["forex"],
                 forex_summary=processed_data["forex_summary"],
+                buffett_indicator_data=data["buffett_indicator"],
+                buffett_indicator_summary=processed_data["buffett_indicator_summary"],
                 news_summary=processed_data["news_summary"],
                 calendar_summary=processed_data["calendar_summary"],
             )

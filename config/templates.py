@@ -8,16 +8,19 @@ REPORT_TEMPLATE = """
 ## 2. 미국 시장 동향
 {us_market_summary}
 
-## 3. 미국 국채 수익률
+## 3. 버핏 지표 (Buffett Indicator)
+{buffett_indicator_summary}
+
+## 4. 미국 국채 수익률
 {us_treasury_summary}
 
-## 4. 주요 환율
+## 5. 주요 환율
 {forex_summary}
 
-## 5. 주요 뉴스
+## 6. 주요 뉴스
 {news_summary}
 
-## 6. 주요 경제 지표
+## 7. 주요 경제 지표
 {economic_calendar}
 """
 
@@ -55,4 +58,17 @@ CALENDAR_TEMPLATE = """
 - 발표: {actual}
 - 예상: {forecast}
 - 이전: {previous}
+"""
+
+# 버핏 지표 섹션 템플릿
+BUFFETT_INDICATOR_TEMPLATE = """
+### 현재 상태
+- 현재 지표: {current_ratio:.1f}%
+- 장기 평균: {historical_mean:.1f}%
+- 시장 상태: {market_status}
+- 트렌드 대비: {deviation_from_trend:+.1f}%
+
+### 통계 분석
+- Z-Score: {zscore:.2f} (표준편차 기준)
+- 정상 범위: {lower_2std:.1f}% ~ {upper_2std:.1f}% (±2 표준편차)
 """

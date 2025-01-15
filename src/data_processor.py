@@ -476,3 +476,89 @@ class DataProcessor:
                 formatted.append(event_text)
 
         return "\n".join(formatted).strip()
+
+    def process_buffett_indicator_data(self, data: Dict[str, float]) -> str:
+        """
+        버핏 지표 데이터를 분석하여 요약 텍스트를 생성합니다.
+
+        Args:
+            data: 버핏 지표 데이터 딕셔너리
+            {
+                'current_ratio': float,
+                'trend_value': float,
+                'historical_mean': float,
+                'historical_std': float,
+                'deviation_from_trend': float,
+                'zscore': float,
+                'upper_2std': float,
+                'lower_2std': float,
+                'market_status': str
+            }
+
+        Returns:
+            str: 버핏 지표 분석 요약 문자열
+        """
+        if not data:
+            return "버핏 지표 데이터를 가져올 수 없습니다."
+
+        # 기본 정보 포맷팅
+        summary = []
+        summary.append(f"현재 버핏 지표는 {data['current_ratio']:.1f}%로, ")
+
+        # 트렌드 대비 분석
+        if data["deviation_from_trend"] > 0:
+            summary.append(
+                f"장기 추세선 대비 {abs(data['deviation_from_trend']):.1f}% 높은 수준이며, "
+            )
+        else:
+            summary.append(
+                f"장기 추세선 대비 {abs(data['deviation_from_trend']):.1f}% 낮은 수준이며, "
+            )
+
+        # 표준편차 기반 분석
+        zscore = data["zscore"]
+        if abs(zscore) > 2:
+            summary.append(f"역사적 변동성을 고려할 때 매우 극단적인 수준")
+        elif abs(zscore) > 1:
+            summary.append(f"역사적 변동성을 벗어난 수준")
+        else:
+            summary.append(f"역사적 정상 범위 내 수준")
+        summary.append("입니다.")
+
+        # 시장 상태 평가 및 위험도 분석
+        summary.append(f"\n\n현재 시장은 '{data['market_status']}' 상태로 평가되며, ")
+
+        # 구체적인 투자 시사점 제시
+        if zscore > 2:
+            summary.append(
+                "이는 역사적으로 볼 때 매우 높은 밸류에이션을 의미합니다. "
+                "향후 1-2년 내 시장 조정 가능성에 유의할 필요가 있습니다."
+            )
+        elif zscore > 1:
+            summary.append(
+                "다소 높은 밸류에이션을 보이고 있습니다. "
+                "신규 투자 시 리스크 관리에 유의할 필요가 있습니다."
+            )
+        elif zscore < -2:
+            summary.append(
+                "역사적으로 매우 낮은 밸류에이션을 나타내고 있습니다. "
+                "장기 투자자에게 좋은 매수 기회가 될 수 있습니다."
+            )
+        elif zscore < -1:
+            summary.append(
+                "상대적으로 낮은 밸류에이션을 보이고 있어, "
+                "장기적인 관점에서 투자 기회를 모색해볼 수 있습니다."
+            )
+        else:
+            summary.append(
+                "전반적으로 적정한 밸류에이션 수준을 유지하고 있습니다. "
+                "개별 종목과 섹터의 기회를 찾아 선별적인 투자가 바람직해 보입니다."
+            )
+
+        # 장기 평균과의 비교
+        summary.append(
+            f"\n\n참고로 과거 40년간의 평균 버핏 지표는 {data['historical_mean']:.1f}%이며, "
+            f"±2 표준편차 범위는 {data['lower_2std']:.1f}% ~ {data['upper_2std']:.1f}% 입니다."
+        )
+
+        return "".join(summary)

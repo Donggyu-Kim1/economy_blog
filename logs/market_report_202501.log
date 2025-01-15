@@ -71,3 +71,41 @@
 [2025-01-15 19:44:50] INFO - 처리 단계 '경제 지표 분석' 완료: 
 [2025-01-15 19:44:50] INFO - 데이터 처리 완료
 [2025-01-15 19:44:50] INFO - 리포트 생성 완료: C:\Users\kims0\OneDrive\바탕 화면\market_report\reports\2025-01-15_market_report.md
+[2025-01-15 20:42:23] ERROR - Buffett Indicator 계산 중 오류 발생: Not allowed to merge between different levels. (2 levels on the left, 1 on the right)
+[2025-01-15 20:51:23] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:51:23] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:51:24] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:51:24] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:52:51] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:52:52] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:52:52] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:52:53] ERROR - 백테스트 중 오류 발생: 'Adj Close'
+[2025-01-15 20:54:28] ERROR - 백테스트 중 오류 발생: Data must be 1-dimensional, got ndarray of shape (11353, 1) instead
+[2025-01-15 20:54:29] ERROR - 백테스트 중 오류 발생: Data must be 1-dimensional, got ndarray of shape (11353, 1) instead
+[2025-01-15 20:54:29] ERROR - 백테스트 중 오류 발생: Data must be 1-dimensional, got ndarray of shape (11353, 1) instead
+[2025-01-15 20:54:30] ERROR - 백테스트 중 오류 발생: Data must be 1-dimensional, got ndarray of shape (11353, 1) instead
+[2025-01-15 20:56:54] ERROR - Wilshire 데이터 수집 중 오류 발생: If using all scalar values, you must pass an index
+[2025-01-15 20:56:54] ERROR - Wilshire 데이터 수집 중 오류 발생: If using all scalar values, you must pass an index
+[2025-01-15 20:56:55] ERROR - Wilshire 데이터 수집 중 오류 발생: If using all scalar values, you must pass an index
+[2025-01-15 20:56:56] ERROR - Wilshire 데이터 수집 중 오류 발생: If using all scalar values, you must pass an index
+[2025-01-15 20:56:56] ERROR - Wilshire 데이터 수집 중 오류 발생: If using all scalar values, you must pass an index
+[2025-01-15 22:29:07] INFO - 데이터 수집 시작: 2025-01-15
+[2025-01-15 22:29:12] INFO - 한국 시장 데이터 수집 완료: 
+[2025-01-15 22:29:17] INFO - 미국 시장 데이터 수집 완료: 
+[2025-01-15 22:29:19] INFO - 미국 국채 데이터 수집 완료: 
+[2025-01-15 22:29:20] INFO - 환율 데이터 수집 완료: 
+[2025-01-15 22:29:21] INFO - 뉴스 데이터 수집 완료: 
+[2025-01-15 22:35:27] INFO - 경제 지표 데이터 수집 완료: 
+[2025-01-15 22:35:28] INFO - 버핏 지표 데이터 수집 완료: 
+[2025-01-15 22:35:28] INFO - 데이터 수집 완료
+[2025-01-15 22:35:35] INFO - 차트 생성 완료
+[2025-01-15 22:35:35] INFO - 데이터 처리 시작
+[2025-01-15 22:35:35] INFO - 처리 단계 '미국 시장 분석' 완료: 
+[2025-01-15 22:35:35] INFO - 처리 단계 '한국 시장 분석' 완료: 
+[2025-01-15 22:35:35] INFO - 처리 단계 '미국 국채 분석' 완료: 
+[2025-01-15 22:35:35] INFO - 처리 단계 '환율 분석' 완료: 
+[2025-01-15 22:35:35] INFO - 처리 단계 '뉴스 분석' 완료: 
+[2025-01-15 22:35:35] INFO - 처리 단계 '경제 지표 분석' 완료: 
+[2025-01-15 22:35:35] INFO - 처리 단계 '버핏 지표 분석' 완료: 
+[2025-01-15 22:35:35] INFO - 데이터 처리 완료
+[2025-01-15 22:35:35] INFO - 리포트 생성 완료: C:\Users\kims0\OneDrive\바탕 화면\market_report\reports\2025-01-15_market_report.md

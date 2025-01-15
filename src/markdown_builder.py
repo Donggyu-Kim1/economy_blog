@@ -13,6 +13,7 @@ from config.templates import (
     TREASURY_SECTION_TEMPLATE,
     NEWS_TEMPLATE,
     CALENDAR_TEMPLATE,
+    BUFFETT_INDICATOR_TEMPLATE,
 )
 from config.settings import get_report_filepath, get_image_filepath, DATE_FORMAT
 
@@ -106,6 +107,22 @@ class MarkdownBuilder:
 
         return summary + "\n\n" + "\n\n".join(formatted_data)
 
+    def build_buffett_indicator_section(
+        self, data: Dict[str, Any], summary: str
+    ) -> str:
+        """버핏 지표 섹션 생성"""
+        section = BUFFETT_INDICATOR_TEMPLATE.format(
+            current_ratio=data.get("current_ratio", 0),
+            historical_mean=data.get("historical_mean", 0),
+            market_status=data.get("market_status", "정보 없음"),
+            deviation_from_trend=data.get("deviation_from_trend", 0),
+            zscore=data.get("zscore", 0),
+            lower_2std=data.get("lower_2std", 0),
+            upper_2std=data.get("upper_2std", 0),
+        )
+
+        return summary + "\n\n" + section
+
     def build_news_section(self, news_data: Dict[str, Any], summary: str) -> str:
         """뉴스 섹션 생성"""
         return summary  # 이미 DataProcessor에서 포맷팅된 요약문을 사용
@@ -126,6 +143,8 @@ class MarkdownBuilder:
         kr_market_summary: str,
         forex_data: Dict[str, Dict[str, Any]],
         forex_summary: str,
+        buffett_indicator_data: Dict[str, Any],
+        buffett_indicator_summary: str,
         news_summary: str,
         calendar_summary: str,
     ) -> str:
@@ -142,6 +161,9 @@ class MarkdownBuilder:
                 kr_market_data, kr_market_summary
             ),
             forex_summary=self.build_forex_section(forex_data, forex_summary),
+            buffett_indicator_summary=self.build_buffett_indicator_section(
+                buffett_indicator_data, buffett_indicator_summary
+            ),
             news_summary=news_summary,
             economic_calendar=calendar_summary,
         )
@@ -171,6 +193,8 @@ def create_report(
     kr_market_summary: Optional[str] = None,
     forex_data: Optional[Dict[str, Dict[str, Any]]] = None,
     forex_summary: Optional[str] = None,
+    buffett_indicator_data: Optional[Dict[str, Any]] = None,
+    buffett_indicator_summary: Optional[str] = None,
     news_summary: Optional[str] = None,
     calendar_summary: Optional[str] = None,
 ) -> str:
@@ -190,6 +214,8 @@ def create_report(
         kr_market_summary or "한국 시장 데이터를 가져올 수 없습니다.",
         forex_data or {},
         forex_summary or "환율 데이터를 가져올 수 없습니다.",
+        buffett_indicator_data or {},
+        buffett_indicator_summary or "버핏 지표 데이터를 가져올 수 없습니다.",
         news_summary or "뉴스 데이터를 가져올 수 없습니다.",
         calendar_summary or "경제 지표 데이터를 가져올 수 없습니다.",
     )
@@ -208,15 +234,26 @@ if __name__ == "__main__":
             }
         },
         "us_market_summary": "미국 시장은 상승세를 보였습니다.",
+        "buffett_indicator_data": {
+            "current_ratio": 180.5,
+            "historical_mean": 165.2,
+            "market_status": "고평가됨",
+            "deviation_from_trend": 15.3,
+            "zscore": 1.5,
+            "lower_2std": 140.0,
+            "upper_2std": 190.0,
+        },
+        "buffett_indicator_summary": "현재 버핏 지표는 장기 평균을 상회하고 있습니다.",
     }
 
     builder = MarkdownBuilder()
     print("Testing markdown builder...")
     try:
-        report = builder.build_us_market_section(
-            test_data["us_market_data"], test_data["us_market_summary"]
+        # 테스트 루틴에 버핏 지표 섹션 추가
+        report = builder.build_buffett_indicator_section(
+            test_data["buffett_indicator_data"], test_data["buffett_indicator_summary"]
         )
-        print("Sample report section:")
+        print("Sample Buffett Indicator section:")
         print(report)
     except Exception as e:
         print(f"Test failed with error: {str(e)}")
