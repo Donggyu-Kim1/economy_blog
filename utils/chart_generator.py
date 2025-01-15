@@ -7,6 +7,7 @@ import sys
 import pandas as pd
 import mplfinance as mpf
 import matplotlib.font_manager as fm
+from pykrx import stock
 
 # 한글 폰트 설정
 if os.name == "nt":  # Windows
@@ -26,7 +27,7 @@ sys.path.append(project_root)
 
 from config.settings import (
     US_INDICES,
-    KR_INDICES,
+    KRX_INDICES,
     LOOKBACK_DAYS,
     get_image_filepath,
     DATE_FORMAT,
@@ -63,32 +64,73 @@ def get_market_end_time(market_name: str) -> datetime:
         return now
 
 
+def process_krx_data(df: pd.DataFrame) -> pd.DataFrame:
+    """KRX 데이터를 mplfinance 형식으로 변환"""
+    # 컬럼명 변경
+    df = df.rename(
+        columns={
+            "시가": "Open",
+            "고가": "High",
+            "저가": "Low",
+            "종가": "Close",
+            "거래량": "Volume",
+        }
+    )
+
+    return df
+
+
+def get_krx_data(
+    ticker: str, start_date: datetime, end_date: datetime
+) -> Optional[pd.DataFrame]:
+    """KRX 데이터 조회"""
+    try:
+        # 날짜 형식 변환
+        start_date_str = start_date.strftime("%Y%m%d")
+        end_date_str = end_date.strftime("%Y%m%d")
+
+        # KRX에서 데이터 조회
+        df = stock.get_index_ohlcv_by_date(start_date_str, end_date_str, ticker)
+
+        if df.empty:
+            print(f"데이터를 찾을 수 없음: {ticker}")
+            return None
+
+        return process_krx_data(df)
+
+    except Exception as e:
+        print(f"KRX 데이터 조회 중 오류 발생: {str(e)}")
+        return None
+
+
 def generate_price_chart(
     ticker: str,
     market_name: str,
     date: Optional[str] = None,
     lookback_days: int = LOOKBACK_DAYS,
 ) -> Optional[str]:
+    """차트 생성"""
     try:
         # 시장별 적절한 종료 시점 설정
         end_date = get_market_end_time(market_name)
         start_date = end_date - timedelta(days=min(lookback_days, 30))
 
-        # 티커 형식 조정
-        if ticker in KR_INDICES.values():
-            ticker = f"^{ticker}"
-        elif not ticker.startswith("^"):
-            ticker = f"^{ticker}"
+        # 데이터 수집
+        if market_name in ["KOSPI", "KOSDAQ"]:
+            # KRX 데이터 사용
+            hist = get_krx_data(ticker, start_date, end_date)
+        else:
+            # 미국 시장은 기존 yfinance 사용
+            if not ticker.startswith("^"):
+                ticker = f"^{ticker}"
+            yf_ticker = yf.Ticker(ticker)
+            hist = yf_ticker.history(
+                start=start_date.strftime("%Y-%m-%d"),
+                end=(end_date + timedelta(days=1)).strftime("%Y-%m-%d"),
+                interval="1d",
+            )
 
-        # 데이터 수집 - interval을 1d로 명시적 지정
-        yf_ticker = yf.Ticker(ticker)
-        hist = yf_ticker.history(
-            start=start_date.strftime("%Y-%m-%d"),
-            end=(end_date + timedelta(days=1)).strftime("%Y-%m-%d"),
-            interval="1d",
-        )
-
-        if hist.empty:
+        if hist is None or hist.empty:
             print(f"데이터를 찾을 수 없음: {market_name}")
             return None
 
@@ -122,19 +164,11 @@ def generate_price_chart(
 
 
 def generate_all_charts(date: Optional[str] = None) -> bool:
-    """
-    모든 시장 지수의 차트를 생성합니다.
-
-    Args:
-        date (str, optional): 차트 생성 날짜
-
-    Returns:
-        bool: 모든 차트 생성 성공 여부
-    """
+    """모든 시장 지수의 차트를 생성"""
     success = True
 
-    # 한국 시장 차트 먼저 생성 (우선순위 변경)
-    for market_name, ticker in KR_INDICES.items():
+    # 한국 시장 차트 먼저 생성
+    for market_name, ticker in KRX_INDICES.items():
         if not generate_price_chart(ticker, market_name, date):
             success = False
 

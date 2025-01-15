@@ -26,7 +26,7 @@ NEWS_LANGUAGES = ["ko", "en"]
 # 시장 데이터 설정
 US_INDICES = {"S&P 500": "^GSPC", "NASDAQ": "^IXIC", "DOW": "^DJI"}
 US_TREASURIES = {"2년물": "^IRX", "10년물": "^TNX", "30년물": "^TYX"}
-KR_INDICES = {"KOSPI": "KS11", "KOSDAQ": "KQ11"}
+KRX_INDICES = {"KOSPI": "1001", "KOSDAQ": "2001"}
 
 # 환율 설정
 CURRENCIES = ["USD/KRW", "EUR/KRW", "JPY/KRW", "CNY/KRW"]
