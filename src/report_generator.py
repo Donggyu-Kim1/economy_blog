@@ -17,6 +17,8 @@ from utils.news import get_all_news
 from utils.calendar import EconomicCalendar
 from utils.chart_generator import generate_all_charts
 from utils.buffett_indicator import BuffettIndicator
+from utils.option_data import get_market_option_data
+from utils.option_analysis import analyze_market_options
 from config.settings import DATE_FORMAT
 
 
@@ -66,11 +68,19 @@ class ReportGenerator:
             else:
                 data["calendar"] = []
                 logger.log_data_collection("경제 지표", False, "No events found")
-                logger.log_data_collection("경제 지표", bool(data["calendar"]))
 
             # Buffett Indicator 데이터 수집
             data["buffett_indicator"] = self.buffett_indicator.get_current_status()
             logger.log_data_collection("버핏 지표", bool(data["buffett_indicator"]))
+
+            # 옵션 데이터 수집
+            market_options = get_market_option_data(expiry_type="monthly", periods=3)
+            if market_options:
+                data["options"] = analyze_market_options(market_options)
+                logger.log_data_collection("옵션 시장", True)
+            else:
+                data["options"] = {}
+                logger.log_data_collection("옵션 시장", False, "No options data found")
 
         except Exception as e:
             logger.error("데이터 수집 중 에러 발생", exc_info=e)
@@ -126,6 +136,16 @@ class ReportGenerator:
                 )
                 logger.log_process_step("버핏 지표 분석", False)
 
+            # 옵션 시장 분석 처리
+            if data["options"]:
+                processed["options_summary"] = self.processor.process_options_data(
+                    data["options"]
+                )
+                logger.log_process_step("옵션 시장 분석", True)
+            else:
+                processed["options_summary"] = "옵션 시장 데이터를 가져올 수 없습니다."
+                logger.log_process_step("옵션 시장 분석", False)
+
         except Exception as e:
             logger.error("데이터 처리 중 에러 발생", exc_info=e)
             raise
@@ -163,6 +183,8 @@ class ReportGenerator:
                 buffett_indicator_summary=processed_data["buffett_indicator_summary"],
                 news_summary=processed_data["news_summary"],
                 calendar_summary=processed_data["calendar_summary"],
+                options_data=data["options"],
+                options_summary=processed_data["options_summary"],
             )
 
             # 리포트 저장

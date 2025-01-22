@@ -133,6 +133,13 @@ class MarkdownBuilder:
         """경제 지표 섹션 생성"""
         return summary  # 이미 DataProcessor에서 포맷팅된 요약문을 사용
 
+    def build_options_section(
+        self, data: Dict[str, Dict[str, Any]], summary: str
+    ) -> str:
+        """옵션 시장 섹션 생성"""
+        # DataProcessor에서 이미 포맷팅된 요약문을 사용
+        return summary  # 다른 섹션들과 동일한 방식으로 처리
+
     def build_report(
         self,
         us_market_data: Dict[str, Dict[str, Any]],
@@ -147,12 +154,18 @@ class MarkdownBuilder:
         buffett_indicator_summary: str,
         news_summary: str,
         calendar_summary: str,
+        options_data: Optional[Dict[str, Dict[str, Any]]] = None,
+        options_summary: Optional[str] = None,
     ) -> str:
         """전체 리포트 생성"""
         report = REPORT_TEMPLATE.format(
             date=self.date,
             us_market_summary=self.build_us_market_section(
                 us_market_data, us_market_summary
+            ),
+            options_summary=self.build_options_section(
+                options_data or {},
+                options_summary or "옵션 시장 데이터를 가져올 수 없습니다.",
             ),
             us_treasury_summary=self.build_us_treasury_section(
                 us_treasury_data, us_treasury_summary
@@ -197,9 +210,28 @@ def create_report(
     buffett_indicator_summary: Optional[str] = None,
     news_summary: Optional[str] = None,
     calendar_summary: Optional[str] = None,
+    options_data: Optional[Dict[str, Dict[str, Any]]] = None,
+    options_summary: Optional[str] = None,
 ) -> str:
     """
     리포트 생성 헬퍼 함수
+
+    Args:
+        date: 리포트 날짜
+        us_market_data: 미국 시장 데이터
+        us_market_summary: 미국 시장 요약
+        us_treasury_data: 미국 국채 데이터
+        us_treasury_summary: 미국 국채 요약
+        kr_market_data: 한국 시장 데이터
+        kr_market_summary: 한국 시장 요약
+        forex_data: 환율 데이터
+        forex_summary: 환율 요약
+        buffett_indicator_data: 버핏 지표 데이터
+        buffett_indicator_summary: 버핏 지표 요약
+        news_summary: 뉴스 요약
+        calendar_summary: 경제 지표 요약
+        options_data: 옵션 시장 데이터
+        options_summary: 옵션 시장 요약
 
     Returns:
         str: 저장된 리포트 파일 경로
@@ -218,6 +250,8 @@ def create_report(
         buffett_indicator_summary or "버핏 지표 데이터를 가져올 수 없습니다.",
         news_summary or "뉴스 데이터를 가져올 수 없습니다.",
         calendar_summary or "경제 지표 데이터를 가져올 수 없습니다.",
+        options_data or {},
+        options_summary or "옵션 시장 데이터를 가져올 수 없습니다.",
     )
     return builder.save_report(report_content)
 
@@ -244,16 +278,41 @@ if __name__ == "__main__":
             "upper_2std": 190.0,
         },
         "buffett_indicator_summary": "현재 버핏 지표는 장기 평균을 상회하고 있습니다.",
+        "options_data": {
+            "SPX": {
+                "ratios": {
+                    "volume_ratio": 1.2,
+                    "oi_ratio": 1.1,
+                    "final_signal": "BEARISH",
+                    "strength": 0.7,
+                },
+                "skew": {"atm_iv": 0.15, "trend": "LEFT_SKEWED"},
+            }
+        },
+        "options_summary": "옵션 시장은 하방 리스크에 대한 우려가 높은 상태입니다.",
     }
 
     builder = MarkdownBuilder()
     print("Testing markdown builder...")
     try:
-        # 테스트 루틴에 버핏 지표 섹션 추가
-        report = builder.build_buffett_indicator_section(
-            test_data["buffett_indicator_data"], test_data["buffett_indicator_summary"]
+        # 테스트 루틴에 옵션 섹션 추가
+        report = builder.build_report(
+            test_data.get("us_market_data"),
+            test_data.get("us_market_summary"),
+            {},  # us_treasury_data
+            "국채 데이터 없음",  # us_treasury_summary
+            {},  # kr_market_data
+            "한국 시장 데이터 없음",  # kr_market_summary
+            {},  # forex_data
+            "환율 데이터 없음",  # forex_summary
+            test_data.get("buffett_indicator_data"),
+            test_data.get("buffett_indicator_summary"),
+            "뉴스 데이터 없음",  # news_summary
+            "경제 지표 데이터 없음",  # calendar_summary
+            test_data.get("options_data"),
+            test_data.get("options_summary"),
         )
-        print("Sample Buffett Indicator section:")
+        print("Sample report:")
         print(report)
     except Exception as e:
         print(f"Test failed with error: {str(e)}")

@@ -8,19 +8,22 @@ REPORT_TEMPLATE = """
 ## 2. 미국 시장 동향
 {us_market_summary}
 
-## 3. 버핏 지표 (Buffett Indicator)
+## 3. 미국 옵션 시장 동향
+{options_summary}
+
+## 4. 버핏 지표 (Buffett Indicator)
 {buffett_indicator_summary}
 
-## 4. 미국 국채 수익률
+## 5. 미국 국채 수익률
 {us_treasury_summary}
 
-## 5. 주요 환율
+## 6. 주요 환율
 {forex_summary}
 
-## 6. 주요 뉴스
+## 7. 주요 뉴스
 {news_summary}
 
-## 7. 주요 경제 지표
+## 8. 주요 경제 지표
 {economic_calendar}
 """
 
@@ -71,4 +74,27 @@ BUFFETT_INDICATOR_TEMPLATE = """
 ### 통계 분석
 - Z-Score: {zscore:.2f} (표준편차 기준)
 - 정상 범위: {lower_2std:.1f}% ~ {upper_2std:.1f}% (±2 표준편차)
+"""
+
+# 옵션 섹션 템플릿
+OPTIONS_SECTION_TEMPLATE = """
+### {index_name} 옵션 분석
+
+#### 1. Put/Call 비율 분석
+- 거래량 기준: {volume_ratio:.2f}
+- 미결제약정 기준: {oi_ratio:.2f}
+- 시장 심리: {sentiment}
+{signal_strength}
+
+#### 2. 변동성 분석
+- ATM IV: {atm_iv:.1f}%
+- 스큐 상태: {skew_status}
+{skew_details}
+
+#### 3. 기간 구조 분석
+- 상태: {term_status}
+{term_details}
+
+#### 4. 종합 분석
+{summary}
 """

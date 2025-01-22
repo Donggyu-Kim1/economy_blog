@@ -562,3 +562,210 @@ class DataProcessor:
         )
 
         return "".join(summary)
+
+    def process_options_data(self, option_analysis: Dict[str, Dict[str, Any]]) -> str:
+        """
+        옵션 분석 데이터를 처리하여 요약 텍스트를 생성합니다.
+
+        Args:
+            option_analysis: {
+                'SPX': {
+                    'ratios': {
+                        'volume_ratio': float,
+                        'oi_ratio': float,
+                        'volume_signal': str,
+                        'oi_signal': str,
+                        'final_signal': str,
+                        'strength': float
+                    },
+                    'skew': {
+                        'atm_iv': float,
+                        'otm_put_iv': float,
+                        'otm_call_iv': float,
+                        'put_skew': float,
+                        'call_skew': float,
+                        'skew_level': float,
+                        'trend': str
+                    },
+                    'term_structure': {
+                        'term_structure': List[Dict],
+                        'slope': float,
+                        'trend': str
+                    }
+                },
+                'NDX': {...},
+                'VIX': {...}
+            }
+
+        Returns:
+            str: 옵션 시장 분석 요약 문자열
+        """
+        if not option_analysis:
+            return "옵션 시장 데이터를 가져올 수 없습니다."
+
+        summary = []
+        summary.append("## 옵션 시장 분석")
+
+        for index_name, analysis in option_analysis.items():
+            # 지수별 섹션 시작
+            index_names = {
+                "SPX": "SPX (S&P 500)",
+                "NDX": "NDX (NASDAQ)",
+                "VIX": "VIX (변동성 지수)",
+            }
+            display_name = index_names.get(index_name, index_name)
+            summary.append(f"\n### {display_name} 옵션 시장 동향")
+
+            # P/C 비율 분석
+            ratios = analysis.get("ratios", {})
+            if ratios:
+                volume_ratio = ratios.get("volume_ratio", 0)
+                oi_ratio = ratios.get("oi_ratio", 0)
+                signal = ratios.get("final_signal", "UNKNOWN")
+                strength = ratios.get("strength", 0)
+
+                # 신호 해석
+                signal_desc = {
+                    "BULLISH": "매수 우위",
+                    "BEARISH": "매도 우위",
+                    "NEUTRAL": "중립",
+                    "UNKNOWN": "분석 불가",
+                }
+
+                summary.append(
+                    f"1. Put/Call 비율 분석:\n"
+                    f"   - 거래량 기준: {volume_ratio:.2f}\n"
+                    f"   - 미결제약정 기준: {oi_ratio:.2f}\n"
+                    f"   - 시장 심리: {signal_desc.get(signal, '알 수 없음')}"
+                )
+
+                if signal != "NEUTRAL" and signal != "UNKNOWN":
+                    summary.append(f"   - 신호 강도: {strength:.1%}")
+
+            # 변동성 스큐 분석
+            skew = analysis.get("skew", {})
+            if skew:
+                skew_trend = skew.get("trend", "UNKNOWN")
+                skew_desc = {
+                    "LEFT_SKEWED": "하방 리스크에 대한 우려가 큰 상태",
+                    "RIGHT_SKEWED": "상방 모멘텀에 대한 기대가 큰 상태",
+                    "NEUTRAL": "균형잡힌 상태",
+                    "UNKNOWN": "분석 불가",
+                }
+
+                atm_iv = skew.get("atm_iv", 0) * 100  # 백분율로 변환
+                summary.append(
+                    f"\n2. 변동성 분석:\n"
+                    f"   - ATM IV: {atm_iv:.1f}%\n"
+                    f"   - 스큐 상태: {skew_desc.get(skew_trend, '알 수 없음')}"
+                )
+
+                # 스큐 레벨에 따른 상세 분석
+                skew_level = abs(skew.get("skew_level", 0))
+                otm_put_iv = skew.get("otm_put_iv", 0)
+                atm_iv = skew.get("atm_iv", 0)
+
+                # 극단적인 스큐 상황 감지 (skew_level이 0.1 이상)
+                if skew_level > 0.1:
+                    if skew_trend == "LEFT_SKEWED":
+                        summary.append(
+                            "   - 풋옵션 프리미엄이 콜옵션 대비 매우 높게 형성되어 있어, "
+                            "시장의 극단적인 하방 위험 우려를 시사합니다. "
+                            "이는 대규모 하락에 대비한 헤지 수요가 매우 높은 상태로, "
+                            "금융위기나 시장 충격 직전에 자주 관찰되는 패턴입니다."
+                        )
+                        if otm_put_iv / atm_iv > 1.5:  # OTM 풋옵션 IV가 매우 높은 경우
+                            summary.append(
+                                "   - OTM 풋옵션의 변동성이 크게 상승한 상태로, "
+                                "기관투자자들의 포트폴리오 보호 수요가 급증했음을 시사합니다."
+                            )
+                    elif skew_trend == "RIGHT_SKEWED":
+                        summary.append(
+                            "   - 콜옵션 프리미엄이 풋옵션 대비 매우 높게 형성되어 있어, "
+                            "과도한 낙관론이 형성된 상태입니다. "
+                            "이런 극단적인 상황은 향후 하방 반전 가능성을 시사할 수 있습니다."
+                        )
+                # 일반적인 스큐 상황 (0.05 ~ 0.1)
+                elif skew_level > 0.05:
+                    if skew_trend == "LEFT_SKEWED":
+                        summary.append(
+                            "   - 풋옵션 프리미엄이 콜옵션 대비 높게 형성되어 있어, "
+                            "시장 참여자들의 위험회피 심리가 강한 것으로 판단됩니다."
+                        )
+                    elif skew_trend == "RIGHT_SKEWED":
+                        summary.append(
+                            "   - 콜옵션 프리미엄이 풋옵션 대비 높게 형성되어 있어, "
+                            "상승 모멘텀이 강화될 수 있습니다."
+                        )
+
+                # VIX 지수의 경우 추가 분석
+                if index_name == "VIX" and term:
+                    term_trend = term.get("trend", "")
+                    if skew_level > 0.1 and term_trend == "BACKWARDATION":
+                        summary.append(
+                            "   - VIX의 극단적인 스큐와 역조된 기간구조가 동시에 관찰되어, "
+                            "시장의 극심한 스트레스 상황을 시사합니다."
+                        )
+
+            # 기간 구조 분석
+            term = analysis.get("term_structure", {})
+            if term:
+                term_trend = term.get("trend", "UNKNOWN")
+                term_desc = {
+                    "CONTANGO": "정상적인 기간 구조 (안정적)",
+                    "BACKWARDATION": "역조된 기간 구조 (불안정)",
+                    "FLAT": "평탄한 기간 구조",
+                    "UNKNOWN": "분석 불가",
+                }
+
+                summary.append(
+                    f"\n3. 기간 구조 분석:\n"
+                    f"   - 상태: {term_desc.get(term_trend, '알 수 없음')}"
+                )
+
+                # 추가 해석
+                if term_trend == "CONTANGO":
+                    summary.append(
+                        "   - 장기 옵션의 변동성이 단기 옵션보다 높아 "
+                        "시장이 안정적인 상태를 유지하고 있습니다."
+                    )
+                elif term_trend == "BACKWARDATION":
+                    summary.append(
+                        "   - 단기 옵션의 변동성이 장기 옵션보다 높아 "
+                        "단기적인 시장 불안이 감지됩니다."
+                    )
+
+            # 종합 분석
+            if all(key in analysis for key in ["ratios", "skew", "term_structure"]):
+                summary.append("\n4. 종합 분석:")
+
+                # P/C 비율과 스큐의 일관성 확인
+                if signal == "BULLISH" and skew_trend == "RIGHT_SKEWED":
+                    summary.append(
+                        "   - P/C 비율과 변동성 스큐가 모두 강한 매수 신호를 보이고 있어, "
+                        "단기적인 상승 가능성이 높습니다."
+                    )
+                elif signal == "BEARISH" and skew_trend == "LEFT_SKEWED":
+                    summary.append(
+                        "   - P/C 비율과 변동성 스큐가 모두 매도 압력을 나타내고 있어, "
+                        "단기 조정 가능성에 유의해야 합니다."
+                    )
+                elif signal != "UNKNOWN" and skew_trend != "UNKNOWN":
+                    summary.append(
+                        "   - P/C 비율과 변동성 스큐가 혼조된 신호를 보이고 있어, "
+                        "추가적인 모니터링이 필요합니다."
+                    )
+
+                # 옵션 시장의 전반적인 안정성 평가
+                if term_trend == "CONTANGO":
+                    summary.append(
+                        "   - 정상적인 기간 구조를 보이고 있어 "
+                        "시장의 급격한 변동 가능성은 제한적입니다."
+                    )
+                elif term_trend == "BACKWARDATION":
+                    summary.append(
+                        "   - 역조된 기간 구조가 관찰되어 "
+                        "단기적인 변동성 확대 가능성에 주의가 필요합니다."
+                    )
+
+        return "\n".join(summary)
