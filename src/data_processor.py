@@ -436,9 +436,9 @@ class DataProcessor:
         # 헤더 추가
         formatted = [f"{target_date} ~ {next_date} 경제 지표 일정\n"]
 
-        # 중요 이벤트 필터링 (⭐⭐ 이상)
+        # 중요 이벤트 필터링 (⭐⭐⭐ 이상)
         important_events = [
-            event for event in calendar_data if event["importance"].count("⭐") >= 2
+            event for event in calendar_data if event["importance"].count("⭐") >= 3
         ]
 
         if not important_events:
